@@ -11,10 +11,16 @@ export default defineConfig({
       description:
         "How the software on AVBotz's underwater robot works, and how to start working on it.",
       favicon: "/favicon.ico",
+      logo: { src: "./src/assets/logo.svg", replacesTitle: true },
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/avbotz" }],
       editLink: { baseUrl: "https://github.com/avbotz/software-docs/edit/main/" },
       lastUpdated: true,
-      customCss: ["./src/styles/custom.css"],
+      customCss: [
+        "@fontsource-variable/montserrat/wght.css",
+        "@fontsource-variable/montserrat/wght-italic.css",
+        "./src/styles/custom.css",
+      ],
+      components: { Hero: "./src/components/Hero.astro" },
       // The website's build fails on a link to a page or heading that does not exist.
       plugins: [starlightLinksValidator({ exclude: ["/diagrams/**"] })],
       sidebar: [
