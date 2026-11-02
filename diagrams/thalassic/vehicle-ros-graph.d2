@@ -64,8 +64,8 @@ drivers.dvl -> control: "dvl/velocity, altitude"
 drivers.sub_low -> ekf: odometry/depth
 drivers.sub_low -> control: "odometry/depth, kill_switch"
 drivers.sub_low -> mission: kill_switch
-drivers.front-camera -> vision.front: front-camera/image_raw
-drivers.down-camera -> vision.down: down-camera/image_raw
+drivers.front-camera -> vision.front: front_camera/image_raw
+drivers.down-camera -> vision.down: down_camera/image_raw
 
 ekf -> control: odometry/filtered
 ekf -> mission: odometry/filtered

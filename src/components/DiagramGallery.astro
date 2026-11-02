@@ -1,0 +1,90 @@
+---
+// Every diagram under diagrams/, a heading per directory. A diagram's name on the page is its
+// title, the `# ...` line of its `title: |md` block, or else its file name.
+const REPO = "https://github.com/avbotz/software-docs";
+
+const sources = import.meta.glob<string>("/diagrams/**/*.d2", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+const diagrams = Object.entries(sources)
+  .map(([path, source]) => {
+    const parts = path.split("/");
+    const file = parts.at(-1)!.replace(/\.d2$/, "");
+    return {
+      path,
+      file,
+      directory: parts.slice(2, -1).join("/"),
+      title: source.match(/title:\s*\|md\s*\n\s*#\s*(.+)/)?.[1] ?? file,
+      svg: path.replace(/\.d2$/, ".svg"),
+    };
+  })
+  .filter(({ file }) => !file.startsWith("_"))
+  .sort((a, b) => a.title.localeCompare(b.title));
+
+const directories = [...new Set(diagrams.map(({ directory }) => directory))].sort();
+---
+
+{directories.map((directory) => (
+  <>
+    <h2 id={directory}>{directory}</h2>
+    <div class="diagram-grid not-content">
+      {diagrams
+        .filter((diagram) => diagram.directory === directory)
+        .map(({ path, title, svg }) => (
+          <figure>
+            <a href={svg}>
+              <img src={svg} alt={title} loading="lazy" />
+            </a>
+            <figcaption>
+              <a href={svg}>{title}</a>
+              <a class="source" href={`${REPO}/blob/main${path}`}>
+                source
+              </a>
+            </figcaption>
+          </figure>
+        ))}
+    </div>
+  </>
+))}
+
+<style>
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  figure {
+    margin: 0;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--sl-color-bg-nav);
+  }
+  img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+    background: var(--sl-color-bg);
+    border-bottom: 1px solid var(--sl-color-gray-5);
+  }
+  figcaption {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--sl-text-sm);
+  }
+  a {
+    color: var(--sl-color-white);
+  }
+  .source {
+    color: var(--sl-color-gray-3);
+    flex-shrink: 0;
+  }
+</style>

@@ -1,0 +1,27 @@
+/* The team website's "lane" blue. */
+:root {
+  --sl-color-accent-low: #06364d;
+  --sl-color-accent: #1d9bd7;
+  --sl-color-accent-high: #a9e1fa;
+}
+:root[data-theme="light"] {
+  --sl-color-accent-low: #cdeafa;
+  --sl-color-accent: #0b6e9e;
+  --sl-color-accent-high: #063f5c;
+}
+
+/* Diagrams are large, so keep one within a screenful. Clicking it opens it full size. */
+.sl-markdown-content img[src^="/diagrams/"] {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 85vh;
+  margin-inline: auto;
+}
+
+/* This one is meant to be read on the page. */
+.sl-markdown-content img[src$="/big-picture.svg"] {
+  width: 100%;
+  max-height: none;
+}

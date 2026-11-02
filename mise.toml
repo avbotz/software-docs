@@ -1,83 +1,37 @@
 [tools]
 d2 = "0.9.0"
+node = "26"
+pnpm = "12.16.1"
 
 [settings]
 lockfile = true
 
-[tasks.render]
-description = "Render every diagram to an SVG beside it, and delete renders whose diagram is gone"
+[env]
+ASTRO_TELEMETRY_DISABLED = "1"
+
+[tasks.install]
+description = "Install the website's packages from pnpm-lock.yaml"
+run = "pnpm install --frozen-lockfile"
+
+[tasks.diagrams]
+description = "Render every diagram into public/diagrams/, where the website serves it"
 run = '''
 set -eu
-git ls-files -co --exclude-standard '*.d2' | while read -r f; do
-  case "$(basename "$f")" in _*) continue ;; esac  # imports, not diagrams
-  d2 "$f" "${f%.d2}.svg"
-done
-git ls-files -co --exclude-standard '*.svg' | while read -r f; do
-  # Only d2's own renders: an SVG beside the diagrams may be an icon one of them uses.
-  if [ ! -e "${f%.svg}.d2" ] && grep -q 'data-d2-version=' "$f"; then
-    rm "$f"
-    echo "removed $f"
-  fi
+rm -rf public/diagrams
+find diagrams -name '*.d2' ! -name '_*' | while read -r f; do  # _*: imports, not diagrams
+  d2 "$f" "public/${f%.d2}.svg"
 done
 '''
 
-[tasks.site]
-description = "Render every diagram into _site/ with an index page, as the website serves them"
-run = '''
-set -eu
-rm -rf _site
-mkdir _site
-{
-  cat <<'EOF'
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>AVBotz software diagrams</title>
-<style>
-  :root { --bg: #fff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --card: #f6f8fa; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0d1117; --fg: #f0f6fc; --muted: #9198a1; --line: #3d444d; --card: #151b23; }
-  }
-  body { max-width: 72rem; margin: 0 auto; padding: 2rem 1rem; font: 16px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
-  h1 { margin: 0 0 1rem; font-size: 1.5rem; }
-  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1rem; }
-  h2 { grid-column: 1 / -1; margin: 1rem 0 0; font-size: 1.125rem; }
-  figure { margin: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
-  figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: var(--bg); border-bottom: 1px solid var(--line); }
-  figcaption { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; padding: .5rem .75rem; }
-  a { color: inherit; }
-  figcaption a + a, footer { color: var(--muted); font-size: .875rem; }
-  footer { margin-top: 2rem; }
-</style>
-</head>
-<body>
-<h1>AVBotz Software Diagrams</h1>
-<main>
-EOF
-  # d2 logs to stderr, so only the index goes to stdout. ls-files lists a
-  # directory's files together, which gives one heading per directory.
-  git ls-files -co --exclude-standard '*.d2' | while read -r f; do
-    case "$(basename "$f")" in _*) continue ;; esac  # imports, not diagrams
-    d2 "$f" "_site/${f%.d2}.svg"
-    dir=$(dirname "$f")
-    if [ "$dir" != "${prev:-}" ]; then
-      echo "<h2>$dir</h2>"
-      prev=$dir
-    fi
-    echo "<figure><a href=\"${f%.d2}.svg\"><img src=\"${f%.d2}.svg\" alt=\"$(basename "$f" .d2)\" loading=\"lazy\"></a>"
-    echo "<figcaption><a href=\"${f%.d2}.svg\">$(basename "$f" .d2)</a><a href=\"https://github.com/avbotz/software-diagrams/blob/main/$f\">source</a></figcaption></figure>"
-  done
-  cat <<'EOF'
-</main>
-<footer>Written in <a href="https://d2lang.com">D2</a>. Source on <a href="https://github.com/avbotz/software-diagrams">GitHub</a>.</footer>
-</body>
-</html>
-EOF
-} > _site/index.html
-'''
+[tasks.dev]
+description = "Preview the website at http://localhost:4321 (it reloads as you edit a page)"
+depends = ["install", "diagrams"]
+run = "pnpm run dev"
+
+[tasks.build]
+description = "Build the website into dist/, and fail on any broken internal link"
+depends = ["install", "diagrams"]
+run = "pnpm run build"
 
 [tasks.watch]
 description = "Live preview of one diagram in the browser"
@@ -85,9 +39,17 @@ usage = 'arg "<file>" help="the .d2 file"'
 run = 'd2 --watch "${usage_file?}"'
 
 [tasks.fmt]
-description = "Format every .d2 file"
-run = "git ls-files -co --exclude-standard -z '*.d2' | xargs -0 -r d2 fmt"
+description = "Format every .d2, Markdown and config file"
+depends = ["install"]
+run = '''
+find diagrams -name '*.d2' -print0 | xargs -0 -r d2 fmt
+pnpm exec prettier --write .
+'''
 
 [tasks.check]
-description = "Fail if a .d2 file is unformatted"
-run = "git ls-files -co --exclude-standard -z '*.d2' | xargs -0 -r d2 fmt --check"
+description = "Fail if a .d2, Markdown or config file is unformatted"
+depends = ["install"]
+run = '''
+find diagrams -name '*.d2' -print0 | xargs -0 -r d2 fmt --check
+pnpm exec prettier --check .
+'''

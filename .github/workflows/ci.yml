@@ -16,8 +16,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Each page's "last updated" date comes from its git history.
+          fetch-depth: 0
 
       - uses: jdx/mise-action@v5
 
       - name: Formatting
         run: mise run check
+
+      - name: Build the website, failing on any broken link
+        run: mise run build

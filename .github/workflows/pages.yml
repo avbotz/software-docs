@@ -19,15 +19,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Each page's "last updated" date comes from its git history.
+          fetch-depth: 0
 
       - uses: jdx/mise-action@v5
 
-      - name: Render every diagram into _site/
-        run: mise run site
+      - name: Build the website into dist/
+        run: mise run build
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: _site
+          path: dist
 
   deploy:
     needs: build

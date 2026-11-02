@@ -1,0 +1,50 @@
+---
+title: Home
+description: How the software on AVBotz's underwater robot works, and how to start working on it.
+template: splash
+hero:
+  title: AVBotz Software
+  tagline: How the software on our underwater robot works, and how to start working on it.
+  actions:
+    - text: I'm new here
+      link: /start-here/
+      icon: right-arrow
+    - text: Thalassic reference
+      link: /thalassic/
+      variant: minimal
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <LinkCard
+    title="Start here"
+    description="No experience needed. Set up your computer, run the simulator, and find your way around the code."
+    href="/start-here/"
+  />
+  <LinkCard
+    title="Your first contributions"
+    description="Write a mission, a ROS 2 node and a C++ behavior, then open your first pull request."
+    href="/tutorials/first-mission/"
+  />
+  <LinkCard
+    title="Concepts"
+    description="Coordinates, sensors, PID control, behavior trees and computer vision, explained from the start."
+    href="/concepts/coordinates/"
+  />
+  <LinkCard
+    title="Thalassic reference"
+    description="The full details of the stack: architecture, control, missions, vision, simulation and deployment."
+    href="/thalassic/"
+  />
+  <LinkCard
+    title="Diagrams"
+    description="Every software diagram: the ROS graph, the controller's internals, deployment."
+    href="/diagrams/"
+  />
+  <LinkCard
+    title="Stuck?"
+    description="Troubleshooting for the errors people actually hit, and a glossary of every term."
+    href="/help/troubleshooting/"
+  />
+</CardGrid>

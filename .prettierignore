@@ -1,0 +1,5 @@
+dist/
+.astro/
+public/diagrams/
+pnpm-lock.yaml
+mise.lock

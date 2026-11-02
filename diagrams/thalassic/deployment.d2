@@ -34,8 +34,7 @@ internet: Internet {
   }
   channels: "Package channels, pinned by pixi.lock" {
     robostack: "robostack-jazzy\nROS 2 Jazzy"
-    conda_forge: "conda-forge\ncompilers, CUDA 13.2 runtime"
-    isaac_forge: "isaac-forge\nTensorRT 10.16.2 for the Orin"
+    conda_forge: "conda-forge\ncompilers, ONNX Runtime,\nCUDA 13.4 libraries"
   }
 }
 
@@ -55,17 +54,17 @@ vehicle: Marlin V3 {
       - systemd: MAXN power mode, fan at full speed
       - sysctl: 10 MB socket buffers for the GigE camera
       - udev: ${maritime.dev}, ${imu.dev}, ${front-camera.dev}
-      - profile.d: `THALASSIC_DDS_PROFILE=vehicle`
     | {shape: rectangle}
 
     checkout: "~/thalassic, a git checkout" {
-      env: ".pixi/envs/jetson\nROS 2, TensorRT, CUDA runtime" {class: files}
-      weights: "weights/\n*.onnx from fetch-weights,\n*.engine from build-engines" {class: files}
+      env: ".pixi/envs/jetson\nROS 2, ONNX Runtime, CUDA libraries" {class: files}
+      weights: "weights/\n*.onnx from fetch-weights" {class: files}
       missions: "src/sub_mission/resources/\nmission trees" {class: files}
+      install: "install/\nbuilt here by pixi run -e jetson build,\nwithout the simulator" {class: files}
       bags: "bags/\ncopied off with rsync" {class: files}
     }
 
-    stack: "pixi run -e jetson pool"
+    stack: "pixi run -e jetson up pool_test"
   }
 }
 
@@ -75,7 +74,7 @@ internet.github.repo -> internet.github.ci: "push, pull request"
 internet.github.repo -> vehicle.jetson.checkout: "git pull --recurse-submodules" {class: manual}
 internet.channels -> vehicle.jetson.checkout.env: "pixi install --frozen -e jetson" {class: manual}
 internet.github.releases -> vehicle.jetson.checkout.weights: "fetch-weights" {class: manual}
-laptop.checkout -> vehicle.jetson.checkout.missions: "sync-mission: rsync,\nthen rebuild sub_mission" {class: manual}
+laptop.checkout -> vehicle.jetson.checkout.missions: "sync-mission: test, then rsync;\nbuilds sub_mission for new files" {class: manual}
 
 vehicle.jetson.checkout -> vehicle.jetson.stack: runs from
 vehicle.jetson.stack -> vehicle.jetson.checkout.bags: "record:=true"

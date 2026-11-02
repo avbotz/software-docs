@@ -1,0 +1,47 @@
+...@../_config
+...@_device-info
+
+classes: {
+  device: {style.3d: true}
+}
+
+direction: down
+
+title: |md
+  # The big picture
+  The robot senses, thinks and acts, over and over. The arrows above the board are ROS 2 topics.
+| {near: top-center}
+
+sense: Sense {
+  cameras: "Cameras\nfront and down" {class: device}
+  imu: "IMU\nrotation" {class: device}
+  dvl: "DVL\nspeed over the floor" {class: device}
+  pressure: "Pressure sensor\ndepth" {class: device}
+}
+
+think: Think {
+  vision: "sub_vision\nWhat can I see?"
+  ekf: "EKF\nWhere am I?"
+  mission: "sub_mission\nWhat should I do next?"
+  control: "sub_control\nHow do I get there?"
+
+  vision -> mission: vision/detections
+  ekf -> mission: odometry/filtered
+  ekf -> control: odometry/filtered
+  mission -> control: motion_setpoint
+}
+
+act: Act {
+  low: "sub_low\ntalks to the board"
+  board: "maritime board\nruns the firmware" {class: device}
+  thrusters: "8 thrusters" {class: device}
+
+  low -> board: USB
+  board -> thrusters: PWM
+}
+
+sense.cameras -> think.vision: image_raw
+sense.imu -> think.ekf: imu/data
+sense.dvl -> think.ekf: dvl/velocity
+sense.pressure -> think.ekf: odometry/depth
+think.control -> act.low: control/thrusters
