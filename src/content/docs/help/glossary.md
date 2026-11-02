@@ -82,7 +82,7 @@ Press Ctrl-F to find a word.
 
 | Term | Meaning |
 | --- | --- |
-| **`ament`** | ROS 2's build system underneath colcon. `ament_cmake` means a C++ package, and `ament_python` a Python one |
+| **`ament`** | ROS 2's build system underneath colcon. `ament_cmake` means a C++ package, and `ament_python` a Python one. [More](/concepts/build-tools/#inside-a-package-ament-cmake-and-setuptools) |
 | **Bag** | A recording of a run's topics. Ours are `.mcap` files. [More](/thalassic/recording/) |
 | **Callback** | A function that you write and something else calls, such as when a message arrives |
 | **DDS** | The networking layer underneath ROS 2 that finds nodes and moves messages |
@@ -154,6 +154,7 @@ Press Ctrl-F to find a word.
 | **CI** | Continuous Integration. Automatic checks that run on every pull request |
 | **clang-format, ruff, shfmt** | The tools that format our C++, Python and shell code |
 | **clangd** | A tool that gives your editor C++ features, like jumping to definitions |
+| **CMake** | The tool that compiles a C++ package, as its `CMakeLists.txt` says. [More](/concepts/build-tools/#cmake-and-ament_cmake-c-packages) |
 | **colcon** | The tool that builds our ROS 2 packages. [More](/concepts/build-tools/#colcon-builds-the-packages) |
 | **Commit** | A saved snapshot of your changes, with a message |
 | **conda-forge** | The package collection that most of our dependencies come from |
@@ -168,6 +169,7 @@ Press Ctrl-F to find a word.
 | **Pull request (PR)** | A request to merge your branch into the team's code. [More](/tutorials/first-pull-request/) |
 | **Repository (repo)** | A project's code and its history, kept in git |
 | **RoboStack** | A project that packages ROS 2 so that pixi can install it |
+| **setuptools** | The tool that installs a Python package, as its `setup.py` says. [More](/concepts/build-tools/#setuptools-and-ament_python-python-packages) |
 | **Stonefish** | The underwater simulator we use |
 | **Submodule** | Another git repository included inside ours |
 | **WSL** | Windows Subsystem for Linux. A way of running Linux inside Windows |
