@@ -3,13 +3,11 @@ title: Thalassic reference
 description: The full details of Thalassic, the ROS 2 software stack for AVBotz's Marlin V3 AUV.
 ---
 
-Thalassic is the ROS 2 software stack for AVBotz's **Marlin V3** AUV (Autonomous Underwater Vehicle). It targets ROS 2 Jazzy (from RoboStack, via pixi) and uses Stonefish for physics simulation. The code is at [avbotz/thalassic](https://github.com/avbotz/thalassic).
-
-These pages are the detailed reference, written for people who already know the codebase. If you are new, go to [Start here](/start-here/) first.
+Thalassic is the ROS 2 software stack for AVBotz's **Marlin V3** AUV. It targets ROS 2 Jazzy (from RoboStack, via pixi) and uses Stonefish for physics simulation. The code is at [avbotz/thalassic](https://github.com/avbotz/thalassic). If you are new, begin with [Start here](/start-here/).
 
 :::caution
 
-These docs are mostly AI written. Proceed at your own risk: if a page and the code disagree, trust the code, and fix the page.
+These pages are mostly AI-written. If a page and the code disagree, trust the code and fix the page.
 
 :::
 
@@ -17,20 +15,16 @@ These docs are mostly AI written. Proceed at your own risk: if a page and the co
 
 | Page | What it covers |
 | --- | --- |
-| [Setup & Build](/thalassic/setup/) | The pixi workflow, formatting, tests and CI, DDS discovery, GPUs, launch arguments, the workspace layout |
+| [Setup and build](/thalassic/setup/) | The pixi workflow, formatting, tests and CI, DDS discovery, GPUs, launch arguments, the workspace layout |
 | [Architecture](/thalassic/architecture/) | Packages, nodes, topics, the TF tree |
-| [Control System](/thalassic/control/) | Trajectory generator, model-based control law, thrust allocation and thruster failure, command interface, safety, tuning |
-| [Mission System](/thalassic/mission/) | BehaviorTree.CPP mission XML, movement actions, and implementation boundaries |
-| [sub_mission](/thalassic/sub-mission/) | The mission package: running it, trees and missions, pool-side values, vision primitives |
-| [Vision Terms](/thalassic/vision/) | Detection, align, orient and sweep definitions for mission XML, and the model weights |
-| [sub_vision](/thalassic/sub-vision/) | The perception package: topics, model loading and device selection, post-processors, messages |
+| [Control system](/thalassic/control/) | Trajectory generator, model-based control law, thrust allocation and thruster failure, command interface, safety, tuning |
+| [Mission system](/thalassic/mission/) | `sub_mission`: trees and missions, the competition run, running and monitoring a mission, every behavior tree node, the control interface, how a run ends |
+| [Vision system](/thalassic/vision/) | `sub_vision`: topics, model loading and weights, detections, post-processors, align/orient/sweep |
 | [Foxglove](/thalassic/foxglove/) | Connecting, the extensions, the layouts (teleop, tuning, autonomy) |
 | [Simulation](/thalassic/simulation/) | Scenario generation, sim nodes, sensor bridges, performance, the course layout |
 | [Recording](/thalassic/recording/) | A run's MCAP bag (`record:=true`): what it holds, its size, replay |
 | [Networking](/thalassic/networking/) | Vehicle addresses, changing the subnet, MTU, time |
-| [Deployment](/thalassic/deployment/) | Jetson provisioning, running on the vehicle, updates and rollbacks |
-| [Vehicle OS configuration](/thalassic/jetson-os/) | What `deploy/jetson/setup.sh` installs, and why |
-| [udev rules](/thalassic/udev/) | Stable device names on the vehicle |
+| [Deployment](/thalassic/deployment/) | Jetson provisioning and OS configuration, udev rules, running on the vehicle, updates and rollbacks |
 | [Decisions](/thalassic/decisions/) | The rationale for the tooling and design choices |
 
 ## Quick start

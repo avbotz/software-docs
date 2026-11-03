@@ -3,11 +3,23 @@ title: "Foxglove"
 description: "Connecting, the extensions, and the teleop, tuning and autonomy layouts."
 ---
 
-Driving, tuning and watching the vehicle from a laptop is done in [Foxglove](https://foxglove.dev), over the `foxglove_bridge` that every launch file starts. Open a _Foxglove WebSocket_ connection to `ws://localhost:8765` for the simulator, or `ws://192.168.5.245:8765` for the vehicle ([Networking](/thalassic/networking/)); the `foxglove_port` launch argument changes the port ([Setup & Build](/thalassic/setup/#launch-arguments)).
+The vehicle is driven, tuned and watched from a laptop in [Foxglove](https://foxglove.dev), through the `foxglove_bridge` that every launch file starts.
+
+## Connecting
+
+Open a _Foxglove WebSocket_ connection to `ws://localhost:8765` for the simulator, or `ws://192.168.5.245:8765` for the vehicle ([Networking](/thalassic/networking/)). The `foxglove_port` launch argument changes the port ([Setup and build](/thalassic/setup/#launch-arguments)).
 
 ## Extensions
 
-The panels that drive and tune `sub_control` and show `sub_vision`'s detections are the three extensions in [avbotz/foxglove-extensions](https://github.com/avbotz/foxglove-extensions), checked out beside this repository as `../foxglove-extensions`: teleop (6-DOF Teleop, Motion Setpoint), tuning (Controller Gains, Tuning Routines, Controller Signals) and vision (Detections, and a converter that lets Foxglove's own Image panel draw the detections as annotations). `pnpm run local-install` there installs them in the desktop app; their READMEs explain the panels.
+The panels for `sub_control` and `sub_vision` come from the three extensions in [avbotz/foxglove-extensions](https://github.com/avbotz/foxglove-extensions), checked out beside this repository as `../foxglove-extensions`:
+
+| Extension | Panels |
+| --- | --- |
+| teleop | 6-DOF Teleop, Motion Setpoint |
+| tuning | Controller Gains, Tuning Routines, Controller Signals |
+| vision | Detections, and a converter that lets Foxglove's own Image panel draw the detections as annotations |
+
+`pnpm run local-install` there installs them in the desktop app; their READMEs describe the panels.
 
 ## Layouts
 
@@ -21,8 +33,8 @@ The panels that drive and tune `sub_control` and show `sub_vision`'s detections 
 
 The `_sim` files add **KILL** and **RELEASE** buttons for the simulator's kill switch (`sim/kill_switch`) and the robot model on the map. The vehicle's down camera sends a Bayer mosaic, which its JPEG copy stores as a grey image; for colour, add an Image panel on `down_camera/image_raw`.
 
-### Changing them
+### Changing a layout
 
-The layouts are plain JSON files. To change one, make the change in Foxglove, export the layout and save it over the file. The `_sim` and `_vehicle` files are separate, so make the change in both.
+The layouts are JSON. Make the change in Foxglove, export the layout over its file, then make the same change in its `_sim` or `_vehicle` counterpart.
 
-Foxglove names an extension's panels `<display name>.<panel name>` when the extension is installed from its `.foxe` file, which is what the layouts use (`AVBotz Teleop.6-DOF Teleop`). An extension published to an organization is named `org:<publisher>:<name>` instead.
+The layouts name panels `<display name>.<panel name>` (`AVBotz Teleop.6-DOF Teleop`), as Foxglove does for an extension installed from its `.foxe` file; one published to an organization is named `org:<publisher>:<name>` instead.

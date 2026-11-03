@@ -3,11 +3,11 @@ title: Control and PID
 description: What a controller does, how PID works, a small program to experiment with, and how it maps to sub_control.
 ---
 
-When a mission says "go to 1 m deep", something has to work out how hard to push each thruster, right now and again 20 milliseconds from now. That is the **controller**. In our code, it is `sub_control`.
+When a mission says "go to 1 m deep", the **controller**, `sub_control`, works out how hard to push each thruster, every 20 milliseconds.
 
 ## The problem
 
-Here's a first idea: "if the robot is above the target, push down at full power, and otherwise push up". Try picturing it. The robot accelerates down, reaches the target while moving quickly, overshoots, reverses at full power, overshoots again, and so on forever. Pushing harder as you get further away is better, which is the idea behind **PID**.
+The simplest controller pushes down at full power when the robot is above the target, and up otherwise. The robot reaches the target moving fast, overshoots, reverses at full power, and overshoots again, forever. Pushing harder the further away it is works better: that is the idea behind **PID**.
 
 ## PID, one letter at a time
 
@@ -19,7 +19,7 @@ A PID controller adds up three terms, each with a setting called a **gain** that
 command = Kp × error  +  Ki × (error added up over time)  +  Kd × (how fast the error is changing)
 ```
 
-The best way to understand these is to play with them. Save this as `toy_depth.py`. It simulates a pretend submarine, and needs nothing but Python:
+Save this as `toy_depth.py`. It simulates a pretend submarine, and needs only Python:
 
 ```python title="toy_depth.py"
 """A pretend submarine's depth under a PID controller. Change the three gains and run it again."""
@@ -72,9 +72,9 @@ t =   18 s    z =  -0.83 m
 t =   30 s    z =  -0.83 m
 ```
 
-There are two problems with this. It wobbles: it goes down to −0.97, then back up. And then **it gives up at −0.83, never reaching −1**. Why? Because the hull floats, there is a constant push upward. At −0.83, the error is small enough that `KP × error` exactly balances the floating, so nothing moves any more. This leftover error is called **steady-state error**.
+It wobbles, down to −0.97 and back up, and **it stops at −0.83, never reaching −1**: the hull floats, and at −0.83 `KP × error` exactly balances that upward push. This leftover error is **steady-state error**.
 
-Try a bigger `KP`, like 20. The leftover error shrinks, but the wobble gets much worse. Turning up P alone is not the answer.
+With a bigger `KP`, like 20, the leftover error shrinks, but the wobble gets much worse.
 
 ### D: slow down as you approach
 
@@ -89,11 +89,11 @@ t =    9 s    z =  -0.83 m
 t =   30 s    z =  -0.83 m
 ```
 
-The wobble is gone. The robot comes in smoothly. But it still stops at −0.83, because at rest the speed is zero, so the D term does nothing.
+The wobble is gone, but it still stops at −0.83: at rest the speed is zero, so the D term does nothing.
 
 ### I: fix what is left
 
-The I term adds up the error over time. As long as any error remains, however small, it keeps growing and pushing harder. Set `KI = 1.0`:
+The I term adds up the error over time. As long as any error remains, it keeps growing and pushing harder. Set `KI = 1.0`:
 
 ```text
 t =    0 s    z =   0.00 m
@@ -105,9 +105,9 @@ t =   12 s    z =  -1.00 m
 t =   30 s    z =  -1.00 m
 ```
 
-It reaches the target exactly. The I term has found just the right steady push to cancel the floating, without anyone telling it how much the hull floats.
+It reaches the target: the I term has found the steady push that cancels the floating, without being told how much the hull floats.
 
-It does overshoot a little, to −1.11. The target jumped instantly from 0 to −1, which is an abrupt thing to ask for. The real controller avoids that, as you are about to see.
+It overshoots a little, to −1.11, because the target jumped instantly from 0 to −1. The real controller avoids that with a [trajectory generator](#1-trajectory-generator-make-a-smooth-path).
 
 ### Summary
 
@@ -117,11 +117,11 @@ It does overshoot a little, to −1.11. The target jumped instantly from 0 to �
 | **I** (integral) | The error over time | The leftover error from steady forces like floating, or a current | Slow overshoot |
 | **D** (derivative) | How fast you are moving | Wobbling and overshoot | Sensitivity to noise |
 
-**Try it:** the gains above, `[3, 1, 3]`, are the real ones `sub_control` uses for depth in the simulator. Can you find better ones for the toy? What's "better": getting there faster, or with less overshoot?
+**Try it:** `[3, 1, 3]` are the depth gains `sub_control` uses in the simulator. Try to beat them on the toy, on speed or on overshoot.
 
 ## From the toy to the real controller
 
-The toy has one axis and asks for acceleration directly. `sub_control` has six axes, and has to produce it using eight thrusters. It does this in three stages, running 50 times a second:
+Unlike the toy, which has one axis and sets acceleration directly, `sub_control` controls six axes with eight thrusters. It works in three stages, 50 times a second:
 
 ```text
 motion_setpoint ──► trajectory generator ──► control law ──► thrust allocator ──► control/thrusters
@@ -129,11 +129,11 @@ motion_setpoint ──► trajectory generator ──► control law ──► t
 
 ### 1. Trajectory generator: make a smooth path
 
-Rather than jumping straight to the target, as in the toy, it plans a smooth path there that respects limits on speed, acceleration and how fast the acceleration can change. The robot then follows a target that moves smoothly. That's why the real robot doesn't have the toy's overshoot.
+Instead of jumping to the target, it plans a smooth path there within limits on speed, acceleration and how fast the acceleration changes. Following that path, the robot doesn't overshoot like the toy.
 
 ### 2. Control law: work out the force
 
-This is the PID, with a model of the robot added. Since we roughly know the robot's mass, drag and buoyancy, we can calculate most of the force it needs up front. This is called **feedforward**. PID then only has to correct what the model got wrong.
+This is the PID, plus a model of the robot. From the robot's approximate mass, drag and buoyancy, it calculates most of the force needed up front, which is called **feedforward**. PID only corrects what the model gets wrong.
 
 The **gains** are in `src/sub_bringup/config/control/gains_sim.yaml`, one `[kp, ki, kd]` for each axis:
 
@@ -146,15 +146,15 @@ gains:
   yaw: [4.32, 1.728, 3.6]
 ```
 
-The velocity term works directly from measured velocity, instead of working out how fast the error changes, and integrators are stopped from growing while the thrusters are at their limit. That is called **anti-windup**.
+The velocity term uses measured velocity instead of how fast the error changes, and the integrators stop growing while the thrusters are at their limit, which is called **anti-windup**.
 
 ### 3. Thrust allocator: share it across the thrusters
 
-The control law outputs a total force and turning force, called a **wrench**. The allocator works out what each of the eight thrusters must do to produce it, without exceeding its limit. If that is impossible, it gives up the less important motion first: it would rather keep the depth and the robot level than go fast. If a thruster has failed, it shares its work among the others.
+The control law outputs a total force and turning force, a **wrench**. The allocator splits it across the eight thrusters within their limits. When that is impossible, it gives up the less important motion first, keeping depth and level over speed. A failed thruster's work goes to the others.
 
 ## Experiment on the real controller
 
-Start the simulator and open a `pixi shell`. Parameters can be changed while it runs, so let's see what bad gains do. See the current depth gains, then weaken them and remove the I term:
+Start the simulator and open a `pixi shell`. Parameters can change while it runs: read the depth gains, then weaken them and remove the I term:
 
 ```bash
 ros2 param get /marlin_v3/sub_control gains.z
@@ -167,35 +167,35 @@ Send it to 1.5 m:
 ros2 topic pub --once /marlin_v3/motion_setpoint sub_control_interfaces/msg/MotionSetpoint '{mode: [0, 0, 1, 0, 0, 0], position: [0.0, 0.0, -1.5, 0.0, 0.0, 0.0]}'
 ```
 
-Wait 30 seconds, then ask where it got to:
+After 30 seconds, check its depth:
 
 ```bash
 ros2 topic echo --once --field pose.pose.position.z /marlin_v3/odometry/filtered
 ```
 
-When we tried it, it stopped at about **−1.2**, some 30 cm short of its target. That's the same steady-state error you saw in the toy, on the real controller. Now put the gains back, and it finishes the job:
+It stops at about **−1.2**, 30 cm short of its target: the toy's steady-state error, on the real controller. Put the gains back, and it reaches the target:
 
 ```bash
 ros2 param set /marlin_v3/sub_control gains.z "[3.0, 1.0, 3.0]"
 ```
 
-You can also break a thruster, by telling the simulator that thruster 3 produces no thrust. The robot keeps going, as the I term takes up the missing thruster's share:
+To break a thruster, tell the simulator that thruster 3 produces no thrust. The robot keeps going, as the I term takes up the missing thruster's share:
 
 ```bash
 ros2 param set /marlin_v3/sim_thrusters effectiveness "[1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0]"
 ```
 
-To watch this properly, plot it. The `tuning_sim.json` layout in Foxglove graphs target, reference and measured values per axis, and has buttons for running step tests. [Tuning](/thalassic/control/#tuning) describes how we choose gains for the real robot.
+The `tuning_sim.json` Foxglove layout plots target, reference and measured values per axis, and has buttons for step tests. [Tuning](/thalassic/control/#tuning) describes how we choose gains for the real robot.
 
 ## Other things in `sub_control`
 
-Moving the robot isn't all it does. It also:
+Besides moving the robot, it:
 
 - **Arms:** it won't drive until the kill switch has been cycled and the sensors are working.
-- **Watches its sensors:** if one goes quiet, it reacts. See [What happens when a sensor fails?](/concepts/sensors/#what-happens-when-a-sensor-fails)
+- **Watches its sensors**, and reacts when one goes quiet. See [What happens when a sensor fails?](/concepts/sensors/#what-happens-when-a-sensor-fails)
 - **Reports what it's doing:** `control/status` has nearly every internal value, and `control/error` says how far there is to go.
 
 ## Learn more
 
-- [Understanding PID Control](https://www.mathworks.com/videos/series/understanding-pid-control.html) is a short, very clear video series.
-- [Control System](/thalassic/control/) is the full reference for `sub_control`.
+- [Understanding PID Control](https://www.mathworks.com/videos/series/understanding-pid-control.html) is a short video series.
+- [Control system](/thalassic/control/) is the full reference for `sub_control`.

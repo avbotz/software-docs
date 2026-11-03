@@ -1,15 +1,15 @@
 ---
 title: Troubleshooting
-description: The errors people actually hit, what they mean, and how to fix them.
+description: Common errors, what they mean, and how to fix them.
 ---
 
-Search this page for the text of your error (Ctrl-F). If it isn't here, see [Asking for help](#asking-for-help) at the bottom.
+Search this page for the text of your error (Ctrl-F). If it isn't here, see [Asking for help](#asking-for-help).
 
 ## Command not found
 
 ### `pixi: command not found`
 
-Your terminal doesn't know where pixi is. Run this, then open a new terminal:
+pixi isn't on your `PATH`. Run this, then open a new terminal:
 
 ```bash
 echo 'export PATH="$HOME/.pixi/bin:$PATH"' >> ~/.bashrc
@@ -30,13 +30,33 @@ pixi shell
 Package 'sub_bringup' not found: "package 'sub_bringup' not found, searching: [...]"
 ```
 
-The workspace hasn't been built, so run `pixi run build`. If you have just built it inside a `pixi shell`, exit that shell and open it again.
+The workspace isn't built: run `pixi run build`. If you have just built it inside a `pixi shell`, exit that shell and open it again.
+
+## Building
+
+### The build fails
+
+1. **Read the first error, not the last.** Scroll up to the first line containing `error:`; later errors are often caused by it. Ignore warnings.
+1. **Did you just pull?** Run the [update steps](/start-here/setup/#updating-later). This fixes most build failures after a pull.
+1. **Is a package in a submodule failing, or a folder empty?** Run `git submodule update --init --recursive`.
+1. **Is the error in a file you didn't change?** Try a clean build: `pixi run clean`, then `pixi run build`.
+1. **Did it run out of memory?** If the build dies with `Killed`, or your computer freezes, build with fewer jobs at once: `pixi run build --parallel-workers 1`.
+1. **Did you run out of disk space?** Check with `df -h ~`.
+
+The whole log for one package is in `log/latest_build/<package>/stdout_stderr.log`.
+
+### My change to the code had no effect
+
+Check whether [it needed a rebuild](/concepts/build-tools/#when-do-i-need-to-rebuild). C++ always does.
 
 ## Running `pixi run up`
 
-### `task 'up' received more arguments than expected`
+### Launch arguments are rejected
 
-### `file 'seed:=42_launch.py' was not found`
+```text
+task 'up' received more arguments than expected
+file 'seed:=42_launch.py' was not found
+```
 
 You left out the `--`. Launch arguments have to come after it:
 
@@ -61,7 +81,7 @@ pixi run up -- headless:=true
 
 ### `Simulation cannot keep up with real time!`
 
-A few at startup are normal. If they keep coming, your computer is overloaded, so close other programs and make the simulator's job easier:
+A few at startup are normal. If they keep coming, your computer is overloaded: close other programs and lower the simulator's load:
 
 ```bash
 pixi run up -- rendering_quality:=low window_width:=800 window_height:=450
@@ -81,9 +101,9 @@ These appear on normal runs:
 | `dropped a frame`, while shutting down | Harmless |
 | `process has died [... exit code -6 ...]`, while shutting down | The simulator doesn't exit tidily |
 
-### Something else is holding things up, or the next run acts strangely
+### A run hangs or acts strangely after an earlier one
 
-An earlier run may not have shut down fully. Clear it:
+The earlier run may not have shut down fully. Clear it:
 
 ```bash
 pixi run reset
@@ -95,14 +115,14 @@ If the simulator is still going after that, `pkill -f stonefish_simulator` stops
 
 Work through these in order, in a `pixi shell`:
 
-1. **Is it armed?** Run `ros2 topic echo --once /marlin_v3/control/armed`. If this says `false`, the kill switch is engaged or a sensor is missing. Look in the terminal for `sub_control`'s messages, which say what it's waiting for. It takes about 12 seconds after startup.
+1. **Is it armed?** Run `ros2 topic echo --once /marlin_v3/control/armed`. If `false`, the kill switch is engaged or a sensor is missing; `sub_control`'s messages in the terminal say what it's waiting for. Arming takes about 12 seconds after startup.
 1. **Was your command accepted?** Run `ros2 topic echo --once --field command_rejected /marlin_v3/control/error`. If it's `true`, the terminal running the simulator says why.
 1. **Is the topic right?** It needs the `/marlin_v3/` at the start. Compare with `ros2 topic list`.
 1. **Is the mode right?** A `mode` of `0` means "leave this axis alone", whatever the target says. See [Send your first command](/start-here/ros-2-hands-on/#send-your-first-command).
 
 ### `Waiting for at least 1 matching subscription(s)...` that never ends
 
-It's normal to see this once or twice. If it goes on and on, nothing is listening on that topic. Either the simulator isn't running, or the topic name is wrong.
+Once or twice is normal. If it goes on, nothing is listening on that topic: either the simulator isn't running, or the topic name is wrong.
 
 ## Nodes can't see each other
 
@@ -110,7 +130,7 @@ It's normal to see this once or twice. If it goes on and on, nothing is listenin
 
 Your terminal can't see the stack. Check these:
 
-1. Is the stack actually running, and has it finished starting?
+1. Is the stack running, and has it finished starting?
 1. Did you use `pixi shell` in this terminal, from the `thalassic` folder?
 1. Do both terminals have the same `ROS_DOMAIN_ID` and `ROS_AUTOMATIC_DISCOVERY_RANGE`? Check with `env | grep ROS`.
 
@@ -124,21 +144,17 @@ A crash left stale files behind. Run `pixi run reset`.
 
 ### `Failed to load mission ...: a port with name [...] is found in the XML`
 
-You used a setting that the step doesn't have, probably a typo. The message gives the step and the line. Check it against [the list of steps](/thalassic/mission/#behavior-tree-xml).
+The step has no setting by that name, probably a typo; the message gives the step and the line. Check it against [the list of steps](/thalassic/mission/#behavior-tree-xml).
 
 ### `Mission file '...' does not exist. Available missions:`
 
-Check the spelling. After a name, it looks in the installed missions. For a file of your own, give the full path: `mission:=$HOME/avbotz/playground/my_mission.xml`. Use `$HOME` here, since `~` doesn't work in this position. And if you have just added a file to `resources/missions/`, build `sub_mission` so it can be found.
+Check the spelling. A name is looked up in the installed missions. For a file of your own, give the full path, with `$HOME` rather than `~`, which doesn't work in this position: `mission:=$HOME/avbotz/playground/my_mission.xml`. If you have just added a file to `resources/missions/`, build `sub_mission` so it can be found.
 
 ### `MoveRelative timed out`
 
-A move took too long, so the step gave up. The target may be further than it can reach in time, or the robot may be stuck on a prop. Look at where it is in the simulator's window. The `error xyz` numbers say how far it still had to go.
+The move didn't finish in time: the target is too far to reach before the timeout, or the robot is stuck on a prop. `error xyz` says how far it still had to go, and the simulator's window shows where it is.
 
 For example, `prelim` times out on its way back from the default dock (`course:=D`), about 2.3 m short of its target, but it finishes from `course:=A`.
-
-### My change to the code had no effect
-
-Check whether [it needed a rebuild](/concepts/build-tools/#when-do-i-need-to-rebuild). C++ always does.
 
 ### A mission gets stuck looking for the gate
 
@@ -156,22 +172,27 @@ This is expected in the simulator: the gate model [doesn't detect much there](/c
 
 Download the models with `pixi run fetch-weights`.
 
-## The build fails
+## Foxglove
 
-1. **Read the first error, not the last.** Scroll up to the first line containing `error:`. Later errors are often caused by it. Warnings don't matter here.
-1. **Did you just pull?** Run the [update steps](/start-here/setup/#updating-later). This fixes most build failures after a pull.
-1. **Is a package in a submodule failing, or a folder empty?** Run `git submodule update --init --recursive`.
-1. **Is the error in a file you didn't change?** Try a clean build: `pixi run clean`, then `pixi run build`.
-1. **Did it run out of memory?** If the build dies with `Killed`, or your computer freezes, build with fewer jobs at once: `pixi run build --parallel-workers 1`.
-1. **Did you run out of disk space?** Check with `df -h ~`.
+### It won't connect
 
-To see the whole log for one package, look in `log/latest_build/<package>/stdout_stderr.log`.
+- Is the stack running? `foxglove_bridge` starts along with it.
+- Is the address exactly `ws://localhost:8765`?
+- Is it an old run that has hung? Run `pixi run reset`, then start it again.
+
+### The panels are missing, or it says it can't find them
+
+Install the [extensions](/start-here/setup/#step-6-install-foxglove), then restart Foxglove.
+
+### The keyboard doesn't drive the robot
+
+Click the 6-DOF Teleop panel first: it only listens while it has focus. Its status line says if the robot is killed or not armed.
 
 ## Git
 
 ### My commit was rejected by a hook
 
-A formatting check failed. Have the formatter fix it, then try again:
+A formatting check failed. Format, then commit again:
 
 ```bash
 pixi run format
@@ -191,29 +212,13 @@ Your SSH key isn't set up, or you cloned with an `https://` address. See [Before
 
 You may not be in the [avbotz](https://github.com/avbotz) GitHub organization yet. Ask a lead to add you.
 
-## Foxglove
-
-### It won't connect
-
-- Is the stack running? `foxglove_bridge` starts along with it.
-- Is the address exactly `ws://localhost:8765`?
-- Is it an old run that has hung? Run `pixi run reset`, then start it again.
-
-### The panels are missing, or it says it can't find them
-
-Install the [extensions](/start-here/setup/#step-6-install-foxglove), then restart Foxglove.
-
-### The keyboard doesn't drive the robot
-
-Click on the 6-DOF Teleop panel first: it only listens while it has focus. Then check the status line in the panel, which says if the robot is killed or not armed.
-
 ## Asking for help
 
-Everyone gets stuck, so please do ask, ideally after 30 minutes or so. You will get a useful answer much faster if you include:
+If you have been stuck for about 30 minutes, ask. Include:
 
 1. **What you were trying to do.**
 1. **The exact command you ran.**
-1. **The exact error, as text.** Copy and paste it, rather than taking a photo of the screen. Include the lines before it too.
+1. **The exact error, as text.** Paste it, not a photo of the screen, with the lines before it.
 1. **What you already tried.**
 
 ```text
@@ -223,4 +228,4 @@ I get: [mission-4] [ERROR] ... Mission file '...' does not exist.
 I've checked that the file is there with ls.
 ```
 
-And when you do solve something that wasn't on this page, add it here. The next person will thank you.
+When you solve something that isn't on this page, add it here.

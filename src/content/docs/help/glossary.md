@@ -3,21 +3,19 @@ title: Glossary
 description: Every term you will run into in AVBotz's software, in plain English.
 ---
 
-Press Ctrl-F to find a word.
-
 ## Robot and competition
 
 | Term | Meaning |
 | --- | --- |
 | **Actuator** | A part that does something physical, other than the thrusters: torpedo launchers, marker droppers |
-| **Armed** | The controller is willing to run the thrusters. It needs the kill switch to have been cycled and the sensors to be working |
+| **Armed** | The controller will run the thrusters: the kill switch has been cycled and the sensors are working |
 | **AUV** | Autonomous Underwater Vehicle: a robot submarine with no driver |
-| **Buoyancy** | The water's upward push. Our robot floats slightly, so it comes back up if the thrusters stop |
-| **DVL** | Doppler Velocity Log. A sensor that bounces sound off the floor to measure the robot's speed. [More](/concepts/sensors/#dvl-how-fast-am-i-moving) |
+| **Buoyancy** | The water's upward push. Our robot floats slightly |
+| **DVL** | Doppler Velocity Log. Measures the robot's speed by bouncing sound off the floor. [More](/concepts/sensors/#dvl-how-fast-am-i-moving) |
 | **ESC** | Electronic Speed Controller. The part that turns a command into power for a thruster |
 | **Firmware** | The code that runs on a small chip, like the one on the thruster board |
 | **GigE** | Gigabit Ethernet. The down camera connects with it |
-| **IMU** | Inertial Measurement Unit. A sensor that measures rotation and acceleration. [More](/concepts/sensors/#imu-how-am-i-rotated) |
+| **IMU** | Inertial Measurement Unit. Measures rotation and acceleration. [More](/concepts/sensors/#imu-how-am-i-rotated) |
 | **Jetson** | The NVIDIA Jetson AGX Orin, the robot's main computer |
 | **Kill switch** | A physical switch that stops the thrusters |
 | **maritime** | Our [firmware](https://github.com/avbotz/maritime) for the thruster board |
@@ -28,7 +26,7 @@ Press Ctrl-F to find a word.
 | **PWM** | Pulse Width Modulation. A signal that encodes a value in the length of a pulse, and how the board commands the ESCs |
 | **RoboSub** | The competition we build the robot for, run by RoboNation |
 | **Teleop** | Driving the robot by hand |
-| **Thalassic** | The name of our ROS 2 software stack |
+| **Thalassic** | Our ROS 2 software stack |
 | **Thruster** | A motor and propeller. We have eight |
 | **Woollett** | The Woollett Aquatics Center in Irvine, California, where RoboSub takes place |
 
@@ -40,7 +38,7 @@ Press Ctrl-F to find a word.
 | **Dead reckoning** | Working out position by adding up speed over time. It drifts |
 | **Depth** | How far under the water. We store it as a negative z: 1 m deep is `z = -1` |
 | **Drift** | An error that slowly grows over time |
-| **ENU** | East, North, Up. The world convention we use, with z up. The robot itself uses FLU |
+| **ENU** | East, North, Up: our world convention, with z up. The robot itself uses FLU |
 | **FLU** | Forward, Left, Up. The directions of x, y and z on the robot |
 | **Frame** | A point and a set of directions to measure from. "x = 2" only means something relative to a frame. [More](/concepts/coordinates/#frames-relative-to-what) |
 | **Heading** | Which way the robot is facing: its yaw |
@@ -50,7 +48,7 @@ Press Ctrl-F to find a word.
 | **Odometry** | An estimate of position and speed. The main one is the `odometry/filtered` topic |
 | **Pitch** | Rotation around y: nodding. Positive is nose down |
 | **Pose** | A position and a rotation together |
-| **Quaternion** | Four numbers that store a rotation. You rarely read one by hand |
+| **Quaternion** | Four numbers that store a rotation |
 | **Radian** | The unit of angle we use. A full circle is 2π radians |
 | **Roll** | Rotation around x: tilting sideways. Positive lowers the right side |
 | **Surge** | Moving forward and back |
@@ -68,13 +66,13 @@ Press Ctrl-F to find a word.
 | **EKF** | Extended Kalman Filter. Combines sensors into one best estimate of the robot's position. [More](/concepts/sensors/#combining-them-the-ekf) |
 | **Error** | Target minus current: how far there is to go |
 | **Feedforward** | Calculating the force needed up front, from a model of the robot, instead of waiting for an error |
-| **Gain** | A setting that says how strongly the controller reacts. Tuning means choosing these |
+| **Gain** | A setting for how strongly the controller reacts |
 | **PID** | Proportional, Integral, Derivative. The classic way of correcting an error. [More](/concepts/control/#pid-one-letter-at-a-time) |
 | **Saturation** | A thruster being asked for more than it can give |
 | **Setpoint** | A target value, such as a position to go to |
-| **Steady-state error** | An error that remains after everything has settled down |
+| **Steady-state error** | An error that remains once everything has settled |
 | **Trajectory** | A smooth path to a target over time |
-| **Tuning** | Choosing gains so that the robot responds well |
+| **Tuning** | Choosing gains so the robot responds well |
 | **Watchdog** | A timer that takes action if something goes quiet |
 | **Wrench** | A combined force and turning force |
 
@@ -84,7 +82,7 @@ Press Ctrl-F to find a word.
 | --- | --- |
 | **`ament`** | ROS 2's build system underneath colcon. `ament_cmake` means a C++ package, and `ament_python` a Python one. [More](/concepts/build-tools/#inside-a-package-ament-cmake-and-setuptools) |
 | **Bag** | A recording of a run's topics. Ours are `.mcap` files. [More](/thalassic/recording/) |
-| **Callback** | A function that you write and something else calls, such as when a message arrives |
+| **Callback** | A function you write that something else calls, such as when a message arrives |
 | **DDS** | The networking layer underneath ROS 2 that finds nodes and moves messages |
 | **Interface** | A message or service definition |
 | **Latched** | A topic that gives its most recent message to anyone who subscribes late, such as `control/armed` |
@@ -97,12 +95,12 @@ Press Ctrl-F to find a word.
 | **Publish** | Send a message on a topic |
 | **QoS** | Quality of Service. Settings for how a topic delivers messages, such as whether to retry lost ones |
 | **rclpy, rclcpp** | The ROS 2 libraries for Python and C++ |
-| **ROS 2** | The framework that lets our programs talk to each other. We use the Jazzy version |
+| **`/rosout`** | The topic that every node's log messages go to |
+| **ROS 2** | The framework that lets our programs talk to each other. We use the Jazzy release |
 | **Service** | A request and a reply, like calling a function in another node |
-| **Sim time** | The simulator's clock, published on `/clock`, which nodes use instead of the real time |
+| **Sim time** | The simulator's clock, published on `/clock`, which nodes use instead of real time |
 | **Subscribe** | Listen to a topic |
 | **Topic** | A named channel that nodes send messages on |
-| **`/rosout`** | The topic that every node's log messages go to |
 
 ## Missions
 
@@ -138,7 +136,7 @@ Press Ctrl-F to find a word.
 | **Model** | A trained neural network, with its weights |
 | **ONNX** | A standard file format for neural networks |
 | **ONNX Runtime** | The library we use to run ONNX files |
-| **OpenCV** | A popular library for image processing |
+| **OpenCV** | A library for image processing |
 | **PnP** | Perspective-n-Point. Works out an object's position and rotation from where its known points appear in an image |
 | **Post-processor** | Our task-specific code that runs after the network |
 | **remora** | Our tool for labelling data and training models |
@@ -164,12 +162,12 @@ Press Ctrl-F to find a word.
 | **Git hook** | A check that git runs automatically, for example when you commit |
 | **Headless** | Running without a window |
 | **Lint** | Checking code for style problems and likely mistakes |
-| **mise** | A tool that installs specific versions of tools. This website uses it |
+| **mise** | Installs pinned versions of tools. This website uses it |
 | **pixi** | The tool that installs ROS 2 and everything else we depend on. [More](/concepts/build-tools/#pixi-installs-everything) |
 | **Pull request (PR)** | A request to merge your branch into the team's code. [More](/tutorials/first-pull-request/) |
 | **Repository (repo)** | A project's code and its history, kept in git |
-| **RoboStack** | A project that packages ROS 2 so that pixi can install it |
+| **RoboStack** | Packages ROS 2 so pixi can install it |
 | **setuptools** | The tool that installs a Python package, as its `setup.py` says. [More](/concepts/build-tools/#setuptools-and-ament_python-python-packages) |
 | **Stonefish** | The underwater simulator we use |
 | **Submodule** | Another git repository included inside ours |
-| **WSL** | Windows Subsystem for Linux. A way of running Linux inside Windows |
+| **WSL** | Windows Subsystem for Linux. Runs Linux inside Windows |

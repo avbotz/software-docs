@@ -3,7 +3,7 @@ title: Tour of the code
 description: What is in each folder of Thalassic, which files to read first, and where to look when you want to change something.
 ---
 
-The repository can feel huge at first. Most of it you can ignore for now. This page tells you what is where, and which files are worth reading first.
+Most of the repository can be ignored at first.
 
 ## The top level
 
@@ -23,7 +23,7 @@ thalassic/
 └── log/           Build and test logs (ignored by git)
 ```
 
-"Ignored by git" means that these are generated on your computer and never committed. If something goes badly wrong with them, `pixi run clean` deletes `build/`, `install/` and `log/`, and `pixi run build` makes them again.
+Folders ignored by git are generated on your computer and never committed. If they get into a bad state, `pixi run clean` deletes `build/`, `install/` and `log/`, and `pixi run build` remakes them.
 
 ## The packages
 
@@ -51,13 +51,13 @@ src/
     └── stonefish_vendor/        Builds the simulator itself (submodule)
 ```
 
-A **submodule** is another git repository inside this one. You will rarely need to touch those.
+A **submodule** is another git repository inside this one. You will rarely touch them.
 
-Here is each one in more detail. The paths in these tables start from that package's folder under `src/`.
+In the tables below, paths start from the package's folder under `src/`.
 
 ### `sub_bringup`: start everything (Python, YAML)
 
-The best place to start reading, because it shows how everything fits together.
+Start reading here: it shows how everything fits together.
 
 | File | What it is |
 | --- | --- |
@@ -76,16 +76,16 @@ The best place to start reading, because it shows how everything fits together.
 | --- | --- |
 | `resources/missions/` | Missions you can run, such as `prelim.xml` and `pool_a.xml` |
 | `resources/trees/` | Reusable tasks: `gate.xml`, `slalom.xml`, `torp.xml` and so on |
-| `resources/trees/competition.xml` | **The order of a real competition run.** Worth reading |
+| `resources/trees/competition.xml` | **The order of a real competition run** |
 | `src/nodes/actions/` | The C++ behind XML steps like `PosSetpoint` and `Spin`, one file each |
-| `src/nodes/vision.cpp` | The C++ behind the vision steps like `AlignToDetection`. Very long, so leave it for later |
+| `src/nodes/vision.cpp` | The C++ behind the vision steps like `AlignToDetection` |
 | `test/test_mission.cpp` | The tests |
 
 ### `sub_control`: how do I get there? (C++)
 
 | File | What it is |
 | --- | --- |
-| `sub_control_interfaces/msg/MotionSetpoint.msg` | The command message. Short and well commented |
+| `sub_control_interfaces/msg/MotionSetpoint.msg` | The command message |
 | `sub_control/src/sub_control.cpp` | The node: its 50 Hz loop, arming and safety checks |
 | `sub_control/src/reference_generator.cpp` | Turns a target into a smooth path |
 | `sub_control/src/controller.cpp` | The control law: works out the force needed |
@@ -116,9 +116,7 @@ The best place to start reading, because it shows how everything fits together.
 
 ## Good files to read first
 
-These are short and show how the code is written. Open them while you read this.
-
-| File | Why it's worth reading | Size |
+| File | What it shows | Size |
 | --- | --- | --- |
 | `src/sub_mission/resources/missions/pid_tuning.xml` | A complete mission, in about 20 lines | Very short |
 | `src/sub_control/sub_control_interfaces/msg/MotionSetpoint.msg` | How everything commands the robot | Short |
@@ -130,7 +128,7 @@ These are short and show how the code is written. Open them while you read this.
 
 :::tip
 
-Don't start with `vision.cpp` (nearly 3,000 lines) or `sub_control.cpp`. They make more sense once you know the pieces around them.
+Don't start with `vision.cpp` (nearly 3,000 lines) or `sub_control.cpp`; they make sense once you know the pieces around them.
 
 :::
 
@@ -151,25 +149,21 @@ Don't start with `vision.cpp` (nearly 3,000 lines) or `sub_control.cpp`. They ma
 
 ## How to find things
 
-Search! This finds every line in the repository containing some text:
+`git grep` finds every line in the repository containing some text:
 
 ```bash
 git grep "kill_switch"
 ```
 
-In VS Code, Ctrl-Shift-F does the same, and Ctrl-P jumps to any file by typing part of its name. With the clangd extension set up, Ctrl-click on anything in C++ jumps to where it is defined.
+In VS Code, Ctrl-Shift-F does the same, Ctrl-P opens a file by part of its name, and, with clangd set up, Ctrl-click jumps to a C++ definition.
 
-A good way to understand a feature is to follow its data. Pick a topic like `motion_setpoint`, then `git grep` for it to see who publishes it and who subscribes to it.
+To understand a feature, follow its data: `git grep` a topic like `motion_setpoint` to see who publishes and subscribes to it.
 
 ## Other repositories
-
-Thalassic is the main one, but not the only one:
 
 | Repository | What it is |
 | --- | --- |
 | [maritime](https://github.com/avbotz/maritime) | The firmware on the thruster board, in C |
 | [foxglove-extensions](https://github.com/avbotz/foxglove-extensions) | Our panels in Foxglove, in TypeScript |
-| [remora](https://github.com/avbotz/remora) | Turns recordings into training data and trained models. It is private, so ask a lead for access |
+| [remora](https://github.com/avbotz/remora) | Turns recordings into training data and trained models. Private: ask a lead for access |
 | [software-docs](https://github.com/avbotz/software-docs) | This website |
-
-Next: [pick an area](/start-here/pick-an-area/).

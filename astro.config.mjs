@@ -5,22 +5,23 @@ import starlightLinksValidator from "starlight-links-validator";
 
 export default defineConfig({
   site: "https://sw.avbotz.com",
+  // Pages that were merged into others.
+  redirects: {
+    "/thalassic/sub-mission": "/thalassic/mission/",
+    "/thalassic/sub-vision": "/thalassic/vision/",
+    "/thalassic/jetson-os": "/thalassic/deployment/#what-deployjetsonsetupsh-does",
+    "/thalassic/udev": "/thalassic/deployment/#udev-rules",
+  },
   integrations: [
     starlight({
       title: "AVBotz Software",
       description:
         "How the software on AVBotz's underwater robot works, and how to start working on it.",
       favicon: "/favicon.ico",
-      logo: { src: "./src/assets/logo.svg", replacesTitle: true },
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/avbotz" }],
       editLink: { baseUrl: "https://github.com/avbotz/software-docs/edit/main/" },
       lastUpdated: true,
-      customCss: [
-        "@fontsource-variable/montserrat/wght.css",
-        "@fontsource-variable/montserrat/wght-italic.css",
-        "./src/styles/custom.css",
-      ],
-      components: { Hero: "./src/components/Hero.astro" },
+      customCss: ["./src/styles/custom.css"],
       // The website's build fails on a link to a page or heading that does not exist.
       plugins: [starlightLinksValidator({ exclude: ["/diagrams/**"] })],
       sidebar: [
@@ -70,16 +71,12 @@ export default defineConfig({
             "thalassic/architecture",
             "thalassic/control",
             "thalassic/mission",
-            "thalassic/sub-mission",
             "thalassic/vision",
-            "thalassic/sub-vision",
             "thalassic/foxglove",
             "thalassic/simulation",
             "thalassic/recording",
             "thalassic/networking",
             "thalassic/deployment",
-            "thalassic/jetson-os",
-            "thalassic/udev",
             "thalassic/decisions",
           ],
         },

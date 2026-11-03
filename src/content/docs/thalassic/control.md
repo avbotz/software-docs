@@ -1,9 +1,9 @@
 ---
-title: "Control System"
+title: "Control system"
 description: "Trajectory generator, model-based control law, thrust allocation and thruster failure, command interface, safety, tuning."
 ---
 
-`sub_control` runs at 50 Hz and turns per-axis motion commands into eight thruster commands. It follows the structure of NUS Bumblebee's controller (RoboSub 2025 champion; their design reports describe it as unchanged since 2022):
+`sub_control` runs at 50 Hz and turns per-axis motion commands into eight thruster commands. Its structure is that of NUS Bumblebee's controller (RoboSub 2025 champion):
 
 ```
 MotionSetpoint ──► trajectory generator ──► control law ──────────────────► thrust allocation ──► control/thrusters
@@ -14,49 +14,97 @@ MotionSetpoint ──► trajectory generator ──► control law ────
                                                     └──── achieved wrench ──────────┘ (anti-windup, observer)
 ```
 
-1. A **trajectory generator** turns whatever the mission asks for (go to a pose, move at a speed, stop) into a smooth reference that respects velocity, acceleration and jerk limits, so the thrusters are never asked for a step and the controller gets the reference's velocity and acceleration to feed forward.
-1. The **control law** is _control law partitioning_: a model of the vehicle (mass, drag, buoyancy) cancels its dynamics, so the feedback acts on what is left — the same unit-mass double integrator on every axis.
-1. The **thrust allocator** finds thruster forces within each thruster's limits, giving up the least important axes first when the request is out of reach, and reports what it actually achieved back to the control law.
+Each cycle first runs arming and the watchdogs, which decide whether the thrusters may run and which axes have feedback ([Safety](#safety)). Then:
 
-Arming and the watchdogs run in the same loop, before any of that: the thrusters run only once the vehicle is armed and while the state estimate and attitude are measured; axes that lose feedback are demoted, and thruster health is tracked. [Safety](#safety) has the whole chain, down to the firmware.
+1. The [trajectory generator](#trajectory-generator) turns the command (go to a pose, move at a speed, stop) into a smooth, jerk-limited reference.
+1. The [control law](#control-law) computes the wrench: feedforward from a vehicle model, plus feedback.
+1. The [thrust allocator](#thrust-allocation) finds thruster forces within each thruster's limits, giving up the least important axes first, and reports what it achieved back to the control law.
 
-The rest of this page goes stage by stage. [Configuration](#configuration) lists every parameter.
+[Configuration](#configuration) lists every parameter. [Control and PID](/concepts/control/) introduces the ideas.
 
 [![Inside sub_control: the inputs, one timer running arming, the failsafe, the watchdogs, the trajectory generator, the controller and the allocator, and the outputs.](/diagrams/thalassic/sub-control-internals.svg)](/diagrams/thalassic/sub-control-internals.svg)
 
-Click the diagram to open it full size. New to control? Start with [Control and PID](/concepts/control/).
-
-## Command Interface
+## Command interface
 
 Commands arrive as `sub_control_interfaces/MotionSetpoint` on `motion_setpoint`, which sets a mode for each axis `[x, y, z, roll, pitch, yaw]`:
 
-| Mode | Meaning |
-| --- | --- |
-| `KEEP` | Leave this axis as it is |
-| `POSITION` | Move smoothly to `position[i]` and hold it |
-| `VELOCITY` | Track `velocity[i]` |
-| `HOLD` | Come to a smooth stop and hold wherever that is |
-| `EFFORT` | Open loop: push with `effort[i]` along the body axis, no feedback (testing, identification) |
+| Mode | Value | Meaning |
+| --- | --- | --- |
+| `KEEP` | 0 | Leave this axis as it is |
+| `POSITION` | 1 | Move smoothly to `position[i]` and hold it |
+| `VELOCITY` | 2 | Track `velocity[i]` |
+| `HOLD` | 3 | Come to a smooth stop and hold wherever that is |
+| `EFFORT` | 4 | Open loop: push with `effort[i]` along the body axis, no feedback (testing, identification) |
 
-So one message can say "surge at 0.3 m/s, hold 1 m depth and this heading", and a later one can change only the heading. x and y always share a mode. Their velocity is along the vehicle's heading (`velocity_frame: HEADING`, yaw only, so pitching does not turn "forward" into a dive) or along odom x/y (`WORLD`). `altitude: true` makes a z `POSITION` target an altitude above the bottom from the DVL; the message is rejected if that target is negative or there is no DVL altitude.
+One message can say "surge at 0.3 m/s, hold 1 m depth and this heading", and a later one can change only the heading. x and y always share a mode. Their velocity is along the vehicle's heading (`velocity_frame: HEADING`, yaw only, so pitching does not turn "forward" into a dive) or along odom x/y (`WORLD`). `altitude: true` makes a z `POSITION` target an altitude above the bottom, from the DVL; the message is rejected if that target is negative or there is no DVL altitude.
 
-**Streams expire.** `timeout` (seconds, counted from `header.stamp`, or from arrival if that is earlier or the message is unstamped) turns `VELOCITY` and `EFFORT` axes into a `HOLD` unless they are set again in time, so a stream that stops cannot drive the vehicle away. 0 latches them until they are replaced, so whoever latches them must stop them: the mission sends a stop whenever its run ends, but if its process dies without one (a crash, `SIGKILL`) or hangs, a velocity it latched runs on until the kill switch. Tools and the command line should give a timeout.
+### Frames
 
-**Acknowledgment.** A command's `id` (any nonzero number; `sub_mission` gives each a fresh one) comes back in `control/error` and `control/status` as `command_id` once `sub_control` has taken the command up, with `command_rejected` if it rejected it (it logs why). An error carrying an older id was computed before the command applied, so a sender waiting for a move to finish only counts errors that carry its command's id. Commands while killed or not armed are rejected; those in the moment between arming and the EKF's pose reset are applied (and acknowledged) once it completes.
+Positions are in `odom` (REP-103 ENU, z up): x, y and yaw are zeroed where the kill switch was last released (or where [`reset_pose`](#re-zeroing-the-pose) was last called), and z is depth from the pressure sensor, so 1 m deep is z = −1. Rotations are ZYX Euler angles of the body in odom, and rotational velocities are those angles' rates.
 
-**Frames.** Positions are in `odom` (REP-103 ENU, z up): x, y and yaw are zeroed where the kill switch was last released (or where [`reset_pose`](#re-zeroing-the-pose) was last called), and z is depth from the pressure sensor, so 1 m deep is z = −1. Rotations are ZYX Euler angles of the body in odom, and rotational velocities are those angles' rates.
+### Timeouts
 
-**Bumpless switching.** The reference never jumps. A new target or mode starts from the reference's current position, velocity and acceleration. A `HOLD` decelerates first and latches the position it stops at (where a `POSITION` target would ask for the current velocity), so it neither brakes hard nor pulls back. Yaw targets go the short way round and the reference is never wrapped, so a turn through ±180° is continuous.
+`timeout` (seconds, counted from `header.stamp`, or from arrival if that is earlier or the message is unstamped) turns `VELOCITY` and `EFFORT` axes into a `HOLD` unless they are set again in time, so a stream that stops cannot drive the vehicle away. `timeout: 0` latches them until they are replaced, so whoever latches them must stop them. The mission sends a stop when its run ends, but if its process dies (a crash, `SIGKILL`) or hangs, a velocity it latched runs on until the kill switch. Tools and the command line should set a timeout.
 
-**Teleop** can also publish `cmd_vel` (`Twist`): all six axes `VELOCITY`, stopping if the stream pauses for `safety.cmd_vel_timeout`. Everything else, the mission included, uses `motion_setpoint` only, so commands are applied in the order they were sent.
+### Acknowledgment
+
+A command's `id` (any nonzero number; `sub_mission` gives each a fresh one) comes back as `command_id` in `control/error` and `control/status` once `sub_control` has taken the command up, with `command_rejected` set if it rejected it (it logs why). An error carrying an older id was computed before the command applied, so a sender waiting for a move to finish counts only errors that carry its command's id. Commands are rejected while killed or not armed; those that arrive between arming and the EKF's pose reset are applied, and acknowledged, once the reset completes.
+
+### Bumpless switching
+
+The reference never jumps: a new target or mode starts from its current position, velocity and acceleration. A `HOLD` decelerates first and latches the position it stops at (where a `POSITION` target would ask for the current velocity), so it neither brakes hard nor pulls back. Yaw targets go the short way round and the reference is never wrapped, so a turn through ±180° is continuous.
+
+### Teleop
+
+Teleop can also publish `cmd_vel` (`Twist`): all six axes `VELOCITY`, stopping if the stream pauses for `safety.cmd_vel_timeout`. Everything else, the mission included, uses `motion_setpoint` only, so commands are applied in the order they were sent.
+
+### Examples
+
+From a `pixi shell`, with the stack running:
+
+```bash
+# Go to 1 m forward of the arm point, 0.5 m deep (depth is absolute), level, heading 0
+ros2 topic pub --once /marlin_v3/motion_setpoint sub_control_interfaces/msg/MotionSetpoint \
+  '{mode: [1, 1, 1, 1, 1, 1], position: [1.0, 0.0, -0.5, 0.0, 0.0, 0.0]}'
+
+# Turn to a yaw of 0.5 rad, leaving everything else as it is
+ros2 topic pub --once /marlin_v3/motion_setpoint sub_control_interfaces/msg/MotionSetpoint \
+  '{mode: [0, 0, 0, 0, 0, 1], position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.5]}'
+
+# Surge at 0.3 m/s while still holding depth and heading; stops 1 s after the stream does
+ros2 topic pub -r 5 /marlin_v3/motion_setpoint sub_control_interfaces/msg/MotionSetpoint \
+  '{mode: [2, 2, 0, 0, 0, 0], velocity: [0.3, 0.0, 0.0, 0.0, 0.0, 0.0], timeout: 1.0}'
+
+# Stop and hold wherever the vehicle comes to rest
+ros2 topic pub --once /marlin_v3/motion_setpoint sub_control_interfaces/msg/MotionSetpoint \
+  '{mode: [3, 3, 3, 3, 3, 3]}'
+```
 
 ### Re-zeroing the pose
 
-`ros2 service call /marlin_v3/sub_control/reset_pose std_srvs/srv/Trigger` makes the vehicle's current position and heading the new origin without killing it. The EKF zeroes x, y and yaw (depth, roll and pitch come from the sensors and are kept). Until it confirms, which is usually one EKF cycle, the thrusters keep their last command instead of chasing targets in the old frame. Then the controller holds where the vehicle is. Depth (or altitude), roll and pitch targets carry over, and the integrators are kept, with the world-frame ones turned into the new heading. Commands that arrive in between are applied after the reset, in the new frame.
+`reset_pose` makes the vehicle's current position and heading the new origin without killing it:
 
-## Trajectory Generator
+```bash
+ros2 service call /marlin_v3/sub_control/reset_pose std_srvs/srv/Trigger
+```
 
-`reference_generator.cpp` holds each axis's mode and target and shapes them into a reference with `trajectory.*` limits `[max velocity, max acceleration, max jerk]` for x/y together (so diagonal moves are straight lines), z, roll, pitch and yaw. The shaping is ArduPilot's (`AP_Math/control.cpp`, `trajectory.hpp`): a square-root position controller that brakes at half the acceleration limit, then a jerk-limited slew of the acceleration. It runs online, so targets can move every cycle (visual servoing), and it accepts a velocity target as readily as a position. One change from ArduPilot: near the target its gains give a damping ratio of 0.7, which overshoots a few percent, so here the position gain is a quarter of the velocity gain, which is critically damped.
+The EKF zeroes x, y and yaw (depth, roll and pitch come from the sensors and are kept). Until it confirms, usually within one EKF cycle, the thrusters keep their last command instead of chasing targets in the old frame. Then the controller holds where the vehicle is. Depth (or altitude), roll and pitch targets carry over, and the integrators are kept, with the world-frame ones turned into the new heading. Commands that arrive in between are applied after the reset, in the new frame.
+
+## Outputs
+
+- `control/thrusters` (`ThrusterCommand`), every cycle: the eight normalized commands, stamped.
+- `control/status` (`ControllerStatus`), every cycle: each axis's mode, target and trajectory reference; the commanded and achieved wrench; integrators and disturbance estimate; each thruster's force, command, saturation and health; which axes are controllable; and the watchdog states.
+- `control/error` (`Error`), every cycle: target minus measured, per axis, the way the mission reads it (see the message for frames), and the id of the last command taken up.
+- `control/armed` (`Bool`, latched): whether the thrusters may run.
+- `/diagnostics`, once a second: arming (and what blocks it), sensor ages, and thruster health and saturation, under `sub_control: arming`, `: sensors` and `: thrusters`, aggregated with every other node's on `/diagnostics_agg`.
+
+`control/status` and `control/error` are not published while the controller waits for the EKF to confirm the pose reset after arming.
+
+## Trajectory generator
+
+`reference_generator.cpp` holds each axis's mode and target and shapes them into a reference position, velocity and acceleration, so the thrusters are never asked for a step and the control law gets the reference's velocity and acceleration to feed forward. Its limits are `trajectory.*`: `[max velocity, max acceleration, max jerk]` for x/y together (so diagonal moves are straight lines), z, roll, pitch and yaw.
+
+The shaping is ArduPilot's (`AP_Math/control.cpp`, `trajectory.hpp`): a square-root position controller that brakes at half the acceleration limit, then a jerk-limited slew of the acceleration. It runs online, so targets can move every cycle (visual servoing), and it accepts a velocity target as well as a position. One change: near the target ArduPilot's gains give a damping ratio of 0.7, which overshoots a few percent; here the position gain is a quarter of the velocity gain, which is critically damped.
 
 In `VELOCITY` mode the reference position keeps integrating the reference velocity, so position feedback acts as integral action on velocity error: a current that slows the vehicle is pushed through, not just tolerated.
 
@@ -64,7 +112,7 @@ The reference is kept on a **leash** (`trajectory.translation_leash`, `rotation_
 
 Keep the limits inside what the thrusters can do at `power_limit`; `control/status` shows `thruster_saturated` when they are not.
 
-## Control Law
+## Control law
 
 With e the position error (world, rotated into the body) and the geodesic attitude error, ν the body velocity, and everything in body FLU:
 
@@ -73,7 +121,7 @@ a*  = a_ref + Kd (ν_ref − ν) + Kp e + I                   servo law, an acce
 τ   = M a* + D(ν_ref) ν_ref + g_hold(q, q_ref) + ω × Jω − d̂   model
 ```
 
-`M` is the vehicle's mass and inertia (including added mass), `D` its linear plus quadratic drag, `g_hold` what holds it against buoyancy (see [Vehicle Model](#vehicle-model)), and `d̂` the [disturbance observer](#disturbance-observer)'s estimate. Because the model part makes every axis a unit-mass double integrator, the gains `gains.<axis>: [kp, ki, kd]` are accelerations, independent of the model: a critically damped triple pole at −ω is
+`M` is the vehicle's mass and inertia (including added mass), `D` its linear plus quadratic drag, `g_hold` what holds it against buoyancy (see [Vehicle model](#vehicle-model)), and `d̂` the [disturbance observer](#disturbance-observer)'s estimate. This is _control law partitioning_: the model part cancels the vehicle's dynamics, leaving the feedback the same unit-mass double integrator on every axis, so the gains `gains.<axis>: [kp, ki, kd]` are accelerations, independent of the model. A critically damped triple pole at −ω is
 
 ```
 kp = 3ω²     ki = ω³     kd = 3ω
@@ -89,7 +137,7 @@ so one bandwidth per axis sets the response. ω is limited by sensing delay: loo
 
 The hardware gains are the old pool-tuned cascade (position P into velocity PI, attitude P into rate P) re-expressed in this form, so the feedback in newtons is unchanged until the model is identified and the vehicle retuned; `gains.yaml` shows the conversion.
 
-## Vehicle Model
+## Vehicle model
 
 `model.*`, in body axes, with moments about the centre of gravity:
 
@@ -102,7 +150,7 @@ The hardware gains are the old pool-tuned cascade (position P into velocity PI, 
 | `center_of_buoyancy`            | base_link [m]; above the CG the hull rights itself             |
 | `linear_drag`, `quadratic_drag` | Per axis `[x, y, z, roll, pitch, yaw]`                         |
 
-The net buoyancy is held in the world frame, at the measured attitude. The righting moment is held at the _reference_ attitude: holding a pitched attitude (aiming a torpedo) gets the torque it needs, while the hull's own righting stiffness still pulls toward the reference instead of being cancelled. Drag is fed forward at the reference velocity, which keeps sensor noise out of it. `feedforward.acceleration`, `.drag` and `.restoring` scale each term from 0 to 1, so they can be brought in one at a time. Everything in the model is feedforward: whatever it gets wrong is a disturbance the feedback, integrators and observer take out, which is why a rough model is fine and a wrong one is not dangerous.
+The net buoyancy is held in the world frame, at the measured attitude. The righting moment is held at the _reference_ attitude: holding a pitched attitude (aiming a torpedo) gets the torque it needs, while the hull's own righting stiffness still pulls toward the reference instead of being cancelled. Drag is fed forward at the reference velocity, which keeps sensor noise out of it. `feedforward.acceleration`, `.drag` and `.restoring` scale each term from 0 to 1, so they can be brought in one at a time. Everything in the model is feedforward: whatever it gets wrong is a disturbance the feedback, integrators and observer take out, so a rough model is fine and a wrong one is not dangerous.
 
 ### Identifying the model
 
@@ -118,7 +166,7 @@ It holds depth, then for each axis pushes open loop (`EFFORT`) at two efforts in
 
 `observer.bandwidth` (rad/s per axis, 0 off) turns on a momentum-based disturbance observer: it compares the measured momentum `Mν` with what the model and the _achieved_ thrust predict, and `d̂` converges on the difference — currents, a buoyancy change after dropping a marker or picking something up, model error — through a first-order lag at that bandwidth, using no differentiated signal. It rejects such steps faster than the integrators, whose `ki` should then be cut to a small residual. Its estimate is in `control/status` (`disturbance`), a direct read of how far off the model is. Keep its bandwidth on x/y at or below the DVL-limited feedback bandwidth; it must stay below `control_rate_hz`. Retuning `observer.bandwidth`, `model.mass` or `model.inertia` live keeps the estimate.
 
-## Thrust Allocation
+## Thrust allocation
 
 `allocator.cpp` maps the body wrench to eight thruster forces with the 6×8 matrix `B`, built from each thruster's position and direction relative to the centre of gravity. The layout comes from the `thrusters:` block of `src/sub_bringup/config/vehicles/<robot>.yaml`, the only copy of it: the launch file passes it to `sub_control` (`allocation.thruster_*`), the simulator is generated from it, and the TF tree is published from it. It solves, every cycle:
 
@@ -178,10 +226,10 @@ Every age above is by the message's own stamp, not its arrival, so a stream that
 
 ## Configuration
 
-Two profiles, loaded at startup (sim loads the sim one):
+The `gains` launch argument picks one of two profiles at startup:
 
-- `src/sub_bringup/config/control/gains.yaml` — hardware
-- `src/sub_bringup/config/control/gains_sim.yaml` — simulation, with the Stonefish model's identified parameters
+- `src/sub_bringup/config/control/gains.yaml`: hardware
+- `src/sub_bringup/config/control/gains_sim.yaml`: simulation, with the Stonefish model's identified parameters
 
 | Parameter | Meaning |
 | --- | --- |
@@ -207,29 +255,21 @@ Everything except the rate, the layout and `robot_name` can be changed at runtim
 
 Each parameter's type, default, description and limits are defined once, in `src/sub_control/sub_control/src/sub_control_parameters.yaml`, from which [generate_parameter_library](https://github.com/PickNikRobotics/generate_parameter_library) generates the code that declares them and validates every change (`ros2 param describe` shows the description and range). A change with a wrong length, a NaN or inf, or a value out of range is rejected with the reason, and so is an `observer.bandwidth` at or above `control_rate_hz`; a batch set atomically is rejected whole if any of it is. An invalid profile stops `sub_control` at startup, saying which parameter is wrong.
 
-### Tuning
+## Tuning
 
 1. Check the thrust direction of every thruster (`EFFORT` on each axis should move the vehicle that way).
 1. Identify the model (`identify_model`) and paste it in.
 1. Pick a bandwidth per axis and set `kp, ki, kd = 3ω², ω³, 3ω`. Start low (x/y 0.6, z 1.0, attitude 1.5 rad/s) and raise each until the response rings, then back off by a third. Step the axis alone with `MotionSetpoint` and watch `control/status`.
 1. Raise the trajectory limits until `thruster_saturated` starts to appear on long moves.
 
-Gains tuned in simulation will not carry over unchanged; the structure and the procedure do.
+Gains tuned in simulation do not carry over to the vehicle; the procedure does.
 
-The AVBotz Tuning extension for Foxglove ([avbotz/foxglove-extensions](https://github.com/avbotz/foxglove-extensions), `tuning/`) runs these steps from Foxglove over the bridge: its Controller Gains panel edits the parameters live and exports what changed in the layout of the gains file, Controller Signals graphs target, reference and measurement per axis, and Tuning Routines runs bounded step, cruise, hold and square routines. Its README walks through the procedure. The `tuning` layouts in `src/sub_bringup/foxglove/` ([Foxglove](/thalassic/foxglove/)) open these panels with a tab of graphs per axis.
-
-## Diagnostics
-
-- `control/status` (`ControllerStatus`), every cycle: each axis's mode, target and trajectory reference; the commanded and achieved wrench; integrators and disturbance estimate; each thruster's force, command, saturation and health; which axes are controllable; and the watchdog states. Plot it in Foxglove when tuning.
-- `control/error` (`Error`), every cycle: target minus measured, per axis, the way the mission reads it (see the message for frames), and the id of the last command taken up.
-- `control/thrusters` (`ThrusterCommand`), every cycle: the eight normalized commands, stamped.
-- `control/armed` (`Bool`, latched): whether the thrusters may run.
-- `/diagnostics`, once a second: arming (and what blocks it), sensor ages, and thruster health and saturation, under `sub_control: arming`, `: sensors` and `: thrusters`, aggregated with every other node's on `/diagnostics_agg`.
-
-`control/status` and `control/error` are not published while the controller waits for the EKF to confirm the pose reset after arming.
+The AVBotz Tuning extension for Foxglove ([avbotz/foxglove-extensions](https://github.com/avbotz/foxglove-extensions), `tuning/`) runs these steps over the bridge: its Controller Gains panel edits the parameters live and exports what changed in the layout of the gains file, Controller Signals graphs target, reference and measurement per axis, and Tuning Routines runs bounded step, cruise, hold and square routines. Its README walks through the procedure. The `tuning` layouts in `src/sub_bringup/foxglove/` ([Foxglove](/thalassic/foxglove/)) open these panels with a tab of graphs per axis.
 
 ## Tests
 
 `colcon test --packages-select sub_control` runs unit tests of the allocator (including every single and double thruster failure), the thrust curve and attitude maths, the trajectory shaping, the trajectory generator's modes (latched streams included), the arming checks and stamp ages, and the closed loop against a simulated vehicle whose mass, drag, buoyancy and trim all differ from the controller's model: holding, a depth step, a long transit, a half turn, surging while holding depth, declared and undeclared thruster failures, losing both front verticals, saturation, a buoyancy step, retuning the observer and the mass live, and a pose reset against a current.
+
+### Measured in simulation
 
 In Stonefish, with the identified `gains_sim.yaml`, sensor noise and a 3.6 cm/s current, the controller held position to 0.4 cm RMS and heading to 0.13°. A 0.6 m depth step overshot 0.6 cm and settled within 5 cm in 4.3 s; a 3 m surge step overshot 0.7 cm and settled in 12 s, 0.5 cm off the line, with depth within 0.9 cm. Turns through ±180° settled within 2° in 6.5 s with under 0.5° of roll or pitch. Commanded to surge at 0.25 m/s, it held 0.251 m/s with depth within 0.5 cm and heading within 0.4°. Killing a vertical thruster mid-hold cost 2.3 cm of depth before it was declared failed (a 2 m move and 1 rad turn afterwards ended within 0.6 cm and 0.2°); losing both front verticals gave up pitch to the hull (5° nose down) and held depth within 5 cm.

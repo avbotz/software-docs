@@ -3,42 +3,11 @@ title: "Simulation"
 description: "Scenario generation, sim nodes, sensor bridges, performance and the course layout."
 ---
 
-## Overview
+The simulator is [Stonefish](https://github.com/patrykcieslak/stonefish), an underwater physics engine, bridged to ROS 2 by `stonefish_ros2`. It runs our fork (`avbotz/stonefish`, branch `claude-extra-features`), which `stonefish_vendor` builds inside the workspace from the submodule at `src/sub_sim/stonefish_vendor/stonefish` ([switching versions](/thalassic/setup/#stonefish)).
 
-The simulator is [Stonefish](https://github.com/patrykcieslak/stonefish), a physics engine built for underwater vehicles. `stonefish_ros2` provides the ROS2 bridge. A custom fork (`avbotz/stonefish`, branch `claude-extra-features`) is required; it is built inside the workspace by the `stonefish_vendor` package from the submodule at `src/sub_sim/stonefish_vendor/stonefish`, so no global install is needed (see [Setup & Build](/thalassic/setup/#stonefish) for switching versions).
+## Simulation nodes
 
-Scenarios are described with Stonefish `.scn` XML files. Thalassic generates them at launch time from Jinja2 templates so task-object positions can be randomized.
-
-## Scenario Generation Pipeline
-
-`sim_launch.py` runs this pipeline before starting Stonefish:
-
-1. **Render robot layout** — `generate_robot.py` renders `data/robots/marlin_v3/layout.scn.j2` into a temporary `.scn` file. The template uses a `thruster.j2` macro to stamp out a thruster for each entry in the vehicle description's `thrusters:` block, and gives the sensors their noise.
-
-1. **Convert to URDF** — `robot_scenario_to_urdf.py` parses the rendered robot `.scn` and emits a URDF, which `robot_state_publisher` publishes as `robot_description` so RViz and Foxglove can draw the robot's meshes.
-
-1. **Render pool scenario** — `randomize_locs.py` renders `scenarios/woollett.scn.j2` with the `DX/DY/DZ/DYAW` fuzz arguments and the starting `course`, producing the final simulation scenario that Stonefish loads.
-
-## Scenario Template Variables
-
-The Jinja2 pool scenario (`woollett.scn.j2`) has access to these helpers:
-
-| Variable / Function | Description |
-| --- | --- |
-| `fuzz(base, mag)` | `base ± uniform(mag)` |
-| `fuzz_z(base, mag)` | Same but clamped to ≥ 0 |
-| `rand(a, b)` | `uniform(a, b)` |
-| `choose(options)` | Pick one item at random |
-| `DX`, `DY`, `DZ`, `DYAW` | Per-axis fuzz magnitudes passed from launch args |
-| `course` | The dock the robot starts from (`A`, `B1`, `C1` or `D`), from the `course` launch argument |
-| `render_robot(x, y, z, roll, pitch, yaw)` | Renders the robot at that pose and returns the `.scn` path to `<include>` |
-| `PI` | `math.pi` |
-
-Use `seed` in the launch argument to get reproducible scenarios. Without one, the launch picks a random seed and, with `record:=true`, records it in the run's bag ([Recording](/thalassic/recording/)).
-
-## Simulation Nodes
-
-`sim_launch.py` runs these in place of the vehicle's drivers, beside everything in `common_launch.py`. The `sub_sim_sensors` bridges run together inside a single composable-node container (`sim_sensors_container`); the others are processes of their own:
+`sim_launch.py` runs these in place of the vehicle's drivers, beside everything in `common_launch.py`. The `sub_sim_sensors` bridges share one composable-node container (`sim_sensors_container`); the others are separate processes.
 
 | Node | Package | Purpose |
 | --- | --- | --- |
@@ -53,15 +22,15 @@ Use `seed` in the launch argument to get reproducible scenarios. Without one, th
 | `sim_dropper` | `sub_sim_sensors` | Dropper service, for both droppers |
 | `sim_grabber` | `sub_sim_sensors` | `set_grabber` service: closing the jaws on an object glues it to the robot, opening them lets go |
 
-## Sensor Simulation
+## Sensors and actuators
 
 ### DVL
 
-Stonefish publishes `stonefish_ros2/DVL` on `sim/dvl`. `sim_dvl_remapper` converts it to a `geometry_msgs/TwistWithCovarianceStamped` on `dvl/velocity` and a `sensor_msgs/Range` on `altitude` — the same topics the hardware WaterLinked driver publishes. Like the driver it drops readings without bottom lock, and it reports a velocity variance of at least `velocity_variance` so the EKF does not treat the DVL as perfect.
+`sim_dvl_remapper` turns Stonefish's `sim/dvl` into the Water Linked driver's topics: `dvl/velocity` (`TwistWithCovarianceStamped`) and `altitude` (`sensor_msgs/Range`). Like the driver, it drops readings without bottom lock. Its velocity variance is at least `velocity_variance`, so the EKF does not treat the DVL as perfect.
 
 ### Sensor noise
 
-By default the simulated sensors carry the noise of the real ones: DVL a few mm/s plus 1% of speed, IMU about 0.1° of attitude and 0.2°/s of rate noise with ~10°/hr of yaw drift (the NaviGuider has no magnetometer), pressure about 3 mm. A controller that only works with perfect sensors will not work in the pool. For a clean run:
+By default the simulated sensors carry the noise of the real ones: DVL a few mm/s plus 1% of speed, IMU about 0.1° of attitude and 0.2°/s of rate noise with ~10°/hr of yaw drift (the NaviGuider has no magnetometer), pressure about 3 mm. To turn it off:
 
 ```bash
 pixi run up -- sensor_noise:=false
@@ -69,7 +38,9 @@ pixi run up -- sensor_noise:=false
 
 ### Thrusters
 
-`sub_control` publishes the eight normalized commands as one stamped `ThrusterCommand` on `control/thrusters`, the same message `sub_low` sends on to the real thrusters. `sim_thrusters` stands in for `sub_low`, the board and the ESCs. Like them, it stops every thruster when the commands stop or arrive older than `command_timeout` (0.5 s), so killing `sub_control` stops the simulated vehicle as it would the real one. It passes the commands to Stonefish as one `sim/thruster_setpoints` array, and each Stonefish thruster stands in for the ESC with its first-order `rotor_dynamics` (0.1 s, the Basic ESC's measured response, in `thruster.j2`) and converts the result to thrust with the T200 curve in its `linear_interpolation` thrust model. Stonefish reports each thruster's setpoint, rpm, thrust and torque on `sim/thruster_states`.
+`sim_thrusters` stands in for `sub_low`, the board and the ESCs, reading the same stamped `ThrusterCommand` on `control/thrusters`. Like the board, it stops every thruster when the commands stop or arrive older than `command_timeout` (0.5 s), so killing `sub_control` stops the simulated vehicle too.
+
+It passes the commands to Stonefish as one `sim/thruster_setpoints` array. Each Stonefish thruster models the ESC with its first-order `rotor_dynamics` (0.1 s, the Basic ESC's measured response, in `thruster.j2`) and converts the result to thrust with the T200 curve in its `linear_interpolation` thrust model. Stonefish reports each thruster's setpoint, rpm, thrust and torque on `sim/thruster_states`.
 
 To fail a thruster mid-run, scale its command (0 is dead, 0.5 half thrust; values outside [0, 1] are rejected):
 
@@ -77,19 +48,23 @@ To fail a thruster mid-run, scale its command (0 is dead, 0.5 half thrust; value
 ros2 param set /marlin_v3/sim_thrusters effectiveness "[1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0]"
 ```
 
-Nothing declares it automatically, as on the vehicle: the integrators take up its share until it is declared with `failed_thrusters`, and then `sub_control` allocates around it ([Control System](/thalassic/control/#thruster-failure)).
+As on the vehicle, nothing declares the failure automatically: the integrators take up its share until it is declared with `failed_thrusters`, and then `sub_control` allocates around it ([Control system](/thalassic/control/#thruster-failure)).
 
 ### Cameras
 
-The front and down cameras are always simulated, where the vehicle description mounts them and as the real ones: the front camera (Logitech C922) at 1920 × 1080, 24 Hz and a 70.4° horizontal field of view, the down camera (FLIR Blackfly S) at 1280 × 1024 and 5 Hz. Each publishes `image_raw` and `camera_info` under its name, as the vehicle's drivers do. The depth camera (`sim/depth_camera`) is added with `depth_camera:=true`, and the segmentation camera (`sim/segment`) with `segmentation_camera:=true`, whose images the bag records as training labels for [remora](https://github.com/avbotz/remora): nothing in the stack reads either, and every camera costs GPU time (see [Performance](#performance)).
+The front and down cameras are always simulated, mounted as in the vehicle description and matching the real ones: front (Logitech C922) 1920 × 1080 at 24 Hz with a 70.4° horizontal field of view, down (FLIR Blackfly S) 1280 × 1024 at 5 Hz. Each publishes `image_raw` and `camera_info` under its name, as the drivers do.
+
+`depth_camera:=true` and `segmentation_camera:=true` add the optional cameras ([Launch arguments](#launch-arguments)). Nothing in the stack reads either, and every camera costs GPU time ([Performance](#performance)).
 
 ### Droppers
 
-Each of the two droppers holds one ball, `dropper_ball_0` and `dropper_ball_1` in `layout.scn.j2`, glued to the robot above the dropper's gate. `set_dropper` with `open` turns the gate's servo, and once it has turned past `release_angle` `sim_dropper` releases the ball of the `dropper_id` opened. A dropper drops once; closing it before the gate has turned keeps its ball. Each ball reports where it is on `sim/dropper_ball_<id>/odometry`.
+Each of the two droppers holds one ball, `dropper_ball_0` and `dropper_ball_1` in `layout.scn.j2`, glued to the robot above the dropper's gate. `set_dropper` with `open` turns that dropper's gate servo; once it passes `release_angle`, `sim_dropper` releases the ball. A dropper drops once; closing it before the gate has turned keeps its ball. Each ball reports where it is on `sim/dropper_ball_<id>/odometry`.
 
-## Simulation Settings
+## Simulation settings
 
-Fixed in `sim_launch.py`:
+### Fixed
+
+Set in `sim_launch.py`:
 
 | Setting | Value |
 | --- | --- |
@@ -99,35 +74,56 @@ Fixed in `sim_launch.py`:
 | `OMP_WAIT_POLICY` | `PASSIVE`, for every node |
 | Fast DDS profile | `config/stonefish_fastdds.xml`, for Stonefish only: a 64 MB shared-memory segment for the camera images |
 
-Launch arguments:
+### Launch arguments
 
 | Argument | Default |  |
 | --- | --- | --- |
-| `course` | D | The dock the robot starts from on the course map: `A`, `B1`, `C1` or `D` (see [Course Layout](#course-layout)) |
+| `course` | D | The dock the robot starts from on the course map: `A`, `B1`, `C1` or `D` ([Course layout](#course-layout)) |
 | `window_width` × `window_height` | 1280 × 720 | Stonefish window |
 | `rendering_quality` | medium | `low`, `medium` or `high`, for the window and the cameras |
 | `sensor_noise` | true | Give the DVL, IMU and pressure sensor the noise of the real ones |
-| `segmentation_camera` | false | Add the segmentation camera (`sim/segment`): the object each front-camera pixel shows, which `record:=true` keeps for remora's labels ([Recording](/thalassic/recording/#what-a-bag-holds)). It is paired with the front camera, so it renders in the front camera's frames instead of taking a turn of its own |
+| `segmentation_camera` | false | Add the segmentation camera (`sim/segment`): the object each front-camera pixel shows, which `record:=true` keeps for [remora](https://github.com/avbotz/remora)'s labels ([Recording](/thalassic/recording/#what-a-bag-holds)). It renders in the front camera's frames, not on a turn of its own |
 | `depth_camera` | false | Add the depth camera (`sim/depth_camera`) |
 | `headless` | false | Run `stonefish_simulator_nogpu`: no window, no GPU or display, and no cameras (so no vision); physics, the DVL, IMU, pressure sensor and actuators as usual. For control, safety and mission-logic tests, and CI |
 
-## Regression test
+## Scenarios
 
-`src/sub_bringup/test/test_sim.py` runs the whole stack against the headless simulator on every `pixi run test` (and so in CI), on a ROS domain and Foxglove port of its own: it checks that `sub_control` arms after the simulated kill switch releases, that the `pid_tuning` mission (a depth step, a 2 m move, a quarter turn) finishes with `SUCCESS`, and that unloading the IMU bridge cuts the thrusters. It takes a minute or two and needs no GPU. Perception is not part of it: the simulator's renders are not what the detectors were trained on, so vision has to be checked on recorded pool footage (not automated yet).
+Scenarios are Stonefish `.scn` XML files. Thalassic generates them at launch from Jinja2 templates, so the task objects' positions can be randomized.
 
-## Performance
+### Generation pipeline
 
-The simulation keeps real time (`/clock` advancing one second per second) on a laptop with integrated graphics, and the cameras keep their rates evenly: on a Radeon 780M (October 2026, `balanced` power profile, Foxglove connected) the front camera's frames arrived 41.7 ms apart on average, 50 ms at the 99th percentile, with 1 of 2146 late. What limits it:
+`sim_launch.py` runs this before starting Stonefish:
 
-- **Physics** runs on its own thread, paced by the wall clock: when a step cannot finish in time, Stonefish drops the time and warns _Simulation cannot keep up with real time_. A 500 Hz step takes about 1 ms. The octagon's bottles and ladles, resting on the table, cost as much as everything else together until they settle and sleep (`sleeping_thresholds` in `layout.scn.j2`). `/clock` and the robot's state are published from this thread, at a cost per subscriber, so they go out at `state_publish_rate` rather than every step. Every node on sim time subscribes to `/clock`, which at 250 Hz took a Python node 20% of a core, so it is 100 Hz, the fastest any node needs (the thruster setpoints).
-- **Cameras** are rendered on the main thread, which renders one camera per frame as it becomes due (it checks every 4 ms and renders nothing when nothing is due). The fastest camera sets the pace: the slower cameras and the window are rendered in the gap right after its frames, so they do not delay its next one, and the window is redrawn at most 20 times a second (at least 5) while cameras run. The GPU sets how much fits: a front-camera frame takes about 20 ms on the 780M, which the power limit keeps at its lowest clock, 800 MHz, while the CPU is busy (the `performance` power profile did not raise it). Shrinking the window, `rendering_quality:=low` (which changes the camera images too) or fewer cameras all leave more room. Keep the robot's visual meshes low-poly; they are drawn in every view and in each of the four shadow passes.
-- **Unused work is skipped.** A camera nobody subscribes to (in any transport) is not rendered; its `camera_info` keeps its rate. `sub_vision` subscribes its camera only once a model is loaded, so with no model, no Foxglove camera panel and no recording, the GPU only draws the window: at most 30 times a second, and not at all while it is minimized.
-- **Other nodes** compete for the same cores. ONNX Runtime on the CPU runs 4 sleeping threads instead of a spinning one per core (see [`sub_vision`](/thalassic/sub-vision/#model-loading--device-selection)). The sensor container runs a single-threaded executor and the Foxglove bridge 2 threads with `sysinfo` off: by default each runs a thread per core, which took 13% and 11% of a core while idle. Nodes that do not read the clock (`static_transforms`, the sensor remappers) are not on sim time. OpenCV's OpenMP workers (in `cv_bridge` and the compressed image transport) spin between frames unless `OMP_WAIT_POLICY=PASSIVE`, which took several cores from the physics thread.
-- **Images between processes** go through Fast DDS shared memory, as ~64 KB fragments in the publisher's segment. The default segment is 512 KB, and a raw front-camera frame is 6.2 MB: it was overwritten before subscribers read it, so best-effort subscribers (`sub_vision`) got half the frames and reliable ones (the Foxglove bridge) waited hundreds of milliseconds for repairs, making the cameras stutter and lag in Foxglove. Stonefish therefore runs with its own profile and a 64 MB segment (see the comment in `stonefish_fastdds.xml`). It publishes the camera images; the other nodes' images (`vision_depth`'s maps) are for viewing and keep the default.
+1. **Render the robot**: `generate_robot.py` renders `data/robots/marlin_v3/layout.scn.j2` into a temporary `.scn` file, with a `thruster.j2` thruster for each entry in the vehicle description's `thrusters:` block ([Robot model](#robot-model)) and the sensors' noise.
+1. **Convert it to URDF**: `robot_scenario_to_urdf.py` parses the rendered robot `.scn` and emits a URDF, which `robot_state_publisher` publishes as `robot_description` so RViz and Foxglove can draw the robot's meshes.
+1. **Render the pool**: `randomize_locs.py` renders `scenarios/woollett.scn.j2` with the `DX/DY/DZ/DYAW` fuzz arguments and the starting `course` into the scenario Stonefish loads.
 
-Our Stonefish fork adds to this: the physics thread never waits for the renderer, camera images are published on their own thread (so a Foxglove client subscribing to `.../compressed` costs no frame rate), and actuator setpoints are handled on their own thread, a few milliseconds after they are published rather than after the frame being rendered. For the frame time it also computes the caustics only for the cameras, at most 30 times a second and only down to the pool's `<bottom>`, skips the wave simulation of a flat surface and the screen-space reflections a flat surface does not need, renders the surface's mirror image without the sun's shadows, and takes fewer shadow samples; it draws each mesh with its own index count, where Stonefish drew four times as many indices.
+### Template variables
 
-## Task Models
+The pool template (`woollett.scn.j2`) has these helpers:
+
+| Variable / Function | Description |
+| --- | --- |
+| `fuzz(base, mag)` | `base ± uniform(mag)` |
+| `fuzz_z(base, mag)` | Same but clamped to ≥ 0 |
+| `rand(a, b)` | `uniform(a, b)` |
+| `choose(options)` | Pick one item at random |
+| `DX`, `DY`, `DZ`, `DYAW` | Per-axis fuzz magnitudes passed from launch args |
+| `course` | The dock the robot starts from (`A`, `B1`, `C1` or `D`), from the `course` launch argument |
+| `render_robot(x, y, z, roll, pitch, yaw)` | Renders the robot at that pose and returns the `.scn` path to `<include>` |
+| `PI` | `math.pi` |
+
+The `seed` launch argument makes a scenario reproducible. Without one, the launch picks a random seed, which `record:=true` stores in the run's bag ([Recording](/thalassic/recording/)).
+
+### Course layout
+
+`woollett.scn.j2` lays out the RoboSub 2026 course map of Woollett. The map is not to scale; positions were measured off it against the pool's walls. The lane dividers (`x = 0` and `x = 12.351`) split the pool into three course areas: A/B1 (A and B1 start in the same area), C1 and D. Each area has a gate, two paths, Avoid Debris (the slalom), Recon (the bin), Deploy (the torpedo board) and Restore (the octagon). The map draws the slalom as one set of pipes; it is three, laid out as in the handbook (2 m apart, staggered), so the second path is moved past them. The robot starts at the dock picked by `course`, facing away from the docks' wall, across the pool (toward its gate for A, C1 and D). Only its own course's table has the bottles and ladles; the other tables are empty (see the comment in the template). The pingers are not simulated.
+
+```bash
+pixi run up -- course:=C1
+```
+
+### Task models
 
 3D models for competition tasks live in `src/sub_sim/sub_sim/data/models/`:
 
@@ -139,36 +135,49 @@ Our Stonefish fork adds to this: the physics thread never waits for the renderer
 | Torpedoes | board with both roles' images, in one of two layouts (`torpboard_v1`, `torpboard_v2`) at random |
 | Octagon | octagon with its Survey, Search, Repair and Rescue images, table, bottles, ladles |
 | Path | orange path markers, 1.2 m long |
-| Pools | woollett, natatorium |
-
-The Woollett pool model (`data/models/pools/woollett/`) is the default scenario.
-
-## Course Layout
-
-`woollett.scn.j2` lays out the RoboSub 2026 course map of Woollett. The map is drawn not to scale, so the positions were measured off it using the pool's walls for scale. The lane dividers (`x = 0` and `x = 12.351`) split the pool into three course areas: A/B1 (A and B1 start in the same area), C1 and D. Each area has a gate, two paths, Avoid Debris (the slalom), Recon (the bin), Deploy (the torpedo board) and Restore (the octagon). The map draws the slalom as one set of pipes; it is three, laid out as in the handbook (2 m apart, staggered), so the second path is moved past them. The robot starts at the dock picked by `course`, facing away from the docks' wall, across the pool (toward its gate for A, C1 and D). Only its own course's table has the bottles and ladles; the other tables are empty (see the comment in the template). The pingers are not simulated.
-
-```bash
-pixi run up -- course:=C1
-```
+| Pools | woollett (`pools/woollett/`, the default scenario), natatorium |
 
 Each prop's folder holds one Stonefish body:
 
-- `<prop>.obj` — the whole prop as one mesh, with UVs into `<prop>.png`
-- `<prop>.png` — its texture. Images and solid colours share one texture, so the prop needs one look and draws in one call. Stonefish uses a look's `rgb` as linear colour but decodes textures as sRGB, so a colour that should match a look `rgb` of `c` is stored as sRGB(`c`).
-- `<prop>_collision.obj` — a low-poly mesh of what can be hit, without flush detail like screws. Static props use it as a triangle mesh (`convex="false"`), so openings such as the torpedo holes stay open. Dynamic props (bottles, ladles) are always collided as the convex hull of this mesh, and Stonefish computes their mass and drag from it; set `<mass>` when the low-poly mesh is much thinner than the real prop.
-- `<prop>.scn` — the `<static>` (or `<dynamic>`), placed by the `x y z roll pitch yaw` include arguments
+- `<prop>.obj`: the whole prop as one mesh, with UVs into `<prop>.png`.
+- `<prop>.png`: its texture. Images and solid colours share one texture, so the prop needs one look and draws in one call. Stonefish uses a look's `rgb` as linear colour but decodes textures as sRGB, so a colour that should match a look `rgb` of `c` is stored as sRGB(`c`).
+- `<prop>_collision.obj`: a low-poly mesh of what can be hit, without flush detail like screws. Static props use it as a triangle mesh (`convex="false"`), so openings such as the torpedo holes stay open. Dynamic props (bottles, ladles) are always collided as the convex hull of this mesh, and Stonefish computes their mass and drag from it; set `<mass>` when the low-poly mesh is much thinner than the real prop.
+- `<prop>.scn`: the `<static>` (or `<dynamic>`), placed by the `x y z roll pitch yaw` include arguments.
 
 A prop with variants that only look different has a visual mesh for each, picked by an include argument: the gate's `visual` is `gate.obj`, Survey & Repair left of the way through, or `gate_swapped.obj`, its UVs swapping the two images.
 
-The name of the body is the prop's name, which the segmentation camera labels its pixels with and remora matches to a class by prefix. Add a new prop the same way: in Blender, bake its materials into one texture and export the visual and collision meshes. Splitting a prop into one body per colour multiplies its draw calls, collision objects and segmentation IDs.
+The body's name is the prop's name, which the segmentation camera labels its pixels with and remora matches to a class by prefix. To add a prop, bake its materials into one texture in Blender and export the visual and collision meshes. Splitting a prop into one body per colour multiplies its draw calls, collision objects and segmentation IDs.
 
-## Robot Model
+## Robot model
 
-The Marlin V3 robot definition lives in `src/sub_sim/sub_sim/data/robots/marlin_v3/`:
+The robot definition is in `src/sub_sim/sub_sim/data/robots/marlin_v3/`:
 
-- `layout.scn.j2` — Jinja2 template for the full robot Stonefish scenario (links, joints, sensors, actuators)
-- `thruster.j2` — macro for a single thruster definition
-- `torpedo.j2` — macro for a torpedo: a free body glued in its tube until `sim_torpedo_launcher` releases it
-- `frame/`, `dropper/`, `grabber/`, `torpedoes/`, etc. — mesh files (`.obj`)
+- `layout.scn.j2`: Jinja2 template for the full robot Stonefish scenario (links, joints, sensors, actuators)
+- `thruster.j2`: macro for a single thruster
+- `torpedo.j2`: macro for a torpedo, a free body glued in its tube until `sim_torpedo_launcher` releases it
+- `frame/`, `dropper/`, `grabber/`, `torpedoes/`, etc.: mesh files (`.obj`)
 
-The thrusters are not written in `layout.scn.j2`: `sim_launch.py` reads them from the `thrusters:` block of `src/sub_bringup/config/vehicles/marlin_v3.yaml` and renders them into the scenario, as the launch files pass the same block to `sub_control`'s allocator and to the TF tree. Moving a thruster is one edit. See [Decision 7](/thalassic/decisions/).
+The thrusters are not written in `layout.scn.j2`: `sim_launch.py` renders them from the `thrusters:` block of `src/sub_bringup/config/vehicles/marlin_v3.yaml`, the block the launch files also pass to `sub_control`'s allocator and to the TF tree, so moving a thruster is one edit ([Decision 5](/thalassic/decisions/#5-hardware-identity-lives-in-a-vehicle-description)).
+
+## Performance
+
+The simulation keeps real time on a laptop with integrated graphics, and the cameras keep their rates evenly: on a Radeon 780M (October 2026, `balanced` power profile, Foxglove connected) the front camera's frames arrived 41.7 ms apart on average, 50 ms at the 99th percentile, with 1 of 2146 late. What limits it:
+
+- **Physics** runs on its own thread, paced by the wall clock: when a step cannot finish in time, Stonefish drops the time and warns _Simulation cannot keep up with real time_. A 500 Hz step takes about 1 ms. The octagon's bottles and ladles, resting on the table, cost as much as everything else together until they settle and sleep (`sleeping_thresholds` in `layout.scn.j2`). `/clock` and the robot's state are published from this thread, at a cost per subscriber, so they go out at `state_publish_rate` rather than every step. Every node on sim time subscribes to `/clock`, which at 250 Hz took a Python node 20% of a core, so it is 100 Hz, the fastest any node needs (the thruster setpoints).
+- **Cameras** are rendered on the main thread, one camera per frame as it becomes due (it checks every 4 ms and renders nothing when nothing is due). The fastest camera sets the pace: the slower cameras and the window are rendered in the gap right after its frames, so they do not delay its next one, and the window is redrawn at most 20 times a second (at least 5) while cameras run. The GPU sets how much fits: a front-camera frame takes about 20 ms on the 780M, which the power limit keeps at its lowest clock, 800 MHz, while the CPU is busy (the `performance` power profile did not raise it). Shrinking the window, `rendering_quality:=low` (which changes the camera images too) or fewer cameras all leave more room. Keep the robot's visual meshes low-poly; they are drawn in every view and in each of the four shadow passes.
+- **Unused work is skipped.** A camera nobody subscribes to (in any transport) is not rendered; its `camera_info` keeps its rate. `sub_vision` subscribes its camera only once a model is loaded, so with no model, no Foxglove camera panel and no recording, the GPU only draws the window: at most 30 times a second, and not at all while it is minimized.
+- **Other nodes** compete for the same cores. ONNX Runtime on the CPU runs 4 sleeping threads instead of a spinning one per core ([Vision system](/thalassic/vision/#device-selection)). The sensor container runs a single-threaded executor and the Foxglove bridge 2 threads with `sysinfo` off: by default each runs a thread per core, which took 13% and 11% of a core while idle. Nodes that do not read the clock (`static_transforms`, the sensor remappers) are not on sim time. OpenCV's OpenMP workers (in `cv_bridge` and the compressed image transport) spin between frames unless `OMP_WAIT_POLICY=PASSIVE`, which took several cores from the physics thread.
+- **Images between processes** go through Fast DDS shared memory, as ~64 KB fragments in the publisher's segment. The default segment is 512 KB, and a raw front-camera frame is 6.2 MB: it was overwritten before subscribers read it, so best-effort subscribers (`sub_vision`) got half the frames and reliable ones (the Foxglove bridge) waited hundreds of milliseconds for repairs, making the cameras stutter and lag in Foxglove. So Stonefish runs with its own profile and a 64 MB segment (see the comment in `stonefish_fastdds.xml`). The other nodes' images (`vision_depth`'s maps) are for viewing and keep the default.
+
+Our Stonefish fork also:
+
+- Never makes the physics thread wait for the renderer.
+- Publishes camera images on their own thread, so a Foxglove client subscribing to `.../compressed` costs no frame rate.
+- Handles actuator setpoints on their own thread, a few milliseconds after they are published rather than after the frame being rendered.
+- Computes the caustics only for the cameras, at most 30 times a second and only down to the pool's `<bottom>`.
+- Skips the wave simulation and screen-space reflections a flat surface does not need, and renders the surface's mirror image without the sun's shadows.
+- Takes fewer shadow samples, and draws each mesh with its own index count, where Stonefish drew four times as many indices.
+
+## Regression test
+
+`src/sub_bringup/test/test_sim.py` runs the whole stack against the headless simulator on every `pixi run test` (and so in CI), on a ROS domain and Foxglove port of its own. It checks that `sub_control` arms after the simulated kill switch releases, that the `pid_tuning` mission (a depth step, a 2 m move, a quarter turn) finishes with `SUCCESS`, and that unloading the IMU bridge cuts the thrusters. It takes a minute or two and needs no GPU. Perception is not part of it: the simulator's renders are not what the detectors were trained on, so vision has to be checked on recorded pool footage (not automated yet).
