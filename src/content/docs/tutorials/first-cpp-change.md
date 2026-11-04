@@ -60,17 +60,17 @@ void registerSayAction(BT::BehaviorTreeFactory &factory, rclcpp::Logger logger) 
 }
 ```
 
-| Code | What it does |
-| --- | --- |
-| `#include "actions.hpp"` | Brings in the declarations this file needs |
-| `namespace { ... }` | Keeps `SayAction` private to this file |
-| `class SayAction : public BT::SyncActionNode` | A step that finishes right away. Moves that take time use another base class (see `pos_setpoint.cpp`) |
-| The constructor | Stores the logger for `tick()` |
-| `providedPorts()` | The settings this step accepts in XML, here `message` |
-| `tick()` | Runs when the behavior tree reaches this step, and returns whether it worked |
-| `readPort(...)` | A helper from `actions.hpp` that reads a setting and logs an error if it fails. Our rule: a mistake in a mission should fail the step, never carry on with a made-up value |
-| `RCLCPP_INFO(...)` | Prints a ROS 2 log line, with the text in place of `%s` |
-| `registerSayAction` | Tells the behavior tree library that `Say` in XML means this class |
+| Code                                          | What it does                                                                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `#include "actions.hpp"`                      | Brings in the declarations this file needs                                                                                                                                 |
+| `namespace { ... }`                           | Keeps `SayAction` private to this file                                                                                                                                     |
+| `class SayAction : public BT::SyncActionNode` | A step that finishes right away. Moves that take time use another base class (see `pos_setpoint.cpp`)                                                                      |
+| The constructor                               | Stores the logger for `tick()`                                                                                                                                             |
+| `providedPorts()`                             | The settings this step accepts in XML, here `message`                                                                                                                      |
+| `tick()`                                      | Runs when the behavior tree reaches this step, and returns whether it worked                                                                                               |
+| `readPort(...)`                               | A helper from `actions.hpp` that reads a setting and logs an error if it fails. Our rule: a mistake in a mission should fail the step, never carry on with a made-up value |
+| `RCLCPP_INFO(...)`                            | Prints a ROS 2 log line, with the text in place of `%s`                                                                                                                    |
+| `registerSayAction`                           | Tells the behavior tree library that `Say` in XML means this class                                                                                                         |
 
 ## Step 2: Connect it
 

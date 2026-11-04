@@ -111,11 +111,11 @@ It overshoots a little, to −1.11, because the target jumped instantly from 0 t
 
 ### Summary
 
-| Term | It reacts to | It fixes | Too much causes |
-| --- | --- | --- | --- |
-| **P** (proportional) | The error now | Gets you moving towards the target | Wobbling |
-| **I** (integral) | The error over time | The leftover error from steady forces like floating, or a current | Slow overshoot |
-| **D** (derivative) | How fast you are moving | Wobbling and overshoot | Sensitivity to noise |
+| Term                 | It reacts to            | It fixes                                                          | Too much causes      |
+| -------------------- | ----------------------- | ----------------------------------------------------------------- | -------------------- |
+| **P** (proportional) | The error now           | Gets you moving towards the target                                | Wobbling             |
+| **I** (integral)     | The error over time     | The leftover error from steady forces like floating, or a current | Slow overshoot       |
+| **D** (derivative)   | How fast you are moving | Wobbling and overshoot                                            | Sensitivity to noise |
 
 **Try it:** `[3, 1, 3]` are the depth gains `sub_control` uses in the simulator. Try to beat them on the toy, on speed or on overshoot.
 

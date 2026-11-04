@@ -18,7 +18,7 @@ After about 12 seconds, the controller prints that it is ready to drive:
 [sub_control-3] [INFO] [1793584627.894890485] [marlin_v3.sub_control]: armed
 ```
 
-The simulated kill switch starts engaged and releases itself after 6 seconds, and the thrusters take 3 more seconds to start. As on the real robot, the controller arms only after the release ([Staying safe](/start-here/big-picture/#staying-safe)). The robot then holds just under the surface, waiting for commands.
+The simulated kill switch starts engaged and releases itself after 6 seconds, and the thrusters take 3 more seconds to start. As on the real robot, the controller arms only after the release ([Staying safe](/thalassic/control/#safety)). The robot then holds just under the surface, waiting for commands.
 
 :::note[Messages that look bad but are fine]
 
@@ -70,16 +70,16 @@ Error:   × task 'up' received more arguments than expected
 
 :::
 
-| Argument | What it does |
-| --- | --- |
-| `headless:=true` | No window, cameras or GPU, for slow computers or no OpenGL 4.3. Everything except vision works |
-| `rendering_quality:=low` | Cheaper graphics, for slower computers |
-| `window_width:=800 window_height:=450` | A smaller window, also faster |
-| `mission:=prelim` | Run a mission ([below](#run-a-mission)) |
-| `course:=C1` | Which dock to start from: `A`, `B1`, `C1` or `D` (the default) |
-| `seed:=7` | Puts the props in the same random positions every time |
-| `sensor_noise:=false` | Perfect sensors, to rule out noise |
-| `record:=true` | Record the run to a [bag file](/thalassic/recording/) in `bags/` |
+| Argument                               | What it does                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `headless:=true`                       | No window, cameras or GPU, for slow computers or no OpenGL 4.3. Everything except vision works |
+| `rendering_quality:=low`               | Cheaper graphics, for slower computers                                                         |
+| `window_width:=800 window_height:=450` | A smaller window, also faster                                                                  |
+| `mission:=prelim`                      | Run a mission ([below](#run-a-mission))                                                        |
+| `course:=C1`                           | Which dock to start from: `A`, `B1`, `C1` or `D` (the default)                                 |
+| `seed:=7`                              | Puts the props in the same random positions every time                                         |
+| `sensor_noise:=false`                  | Perfect sensors, to rule out noise                                                             |
+| `record:=true`                         | Record the run to a [bag file](/thalassic/recording/) in `bags/`                               |
 
 `pixi run up -- --show-args` lists all of them.
 

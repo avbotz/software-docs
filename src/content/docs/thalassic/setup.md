@@ -7,12 +7,12 @@ Thalassic uses [pixi](https://pixi.sh) with the [RoboStack](https://robostack.gi
 
 ## Prerequisites
 
-| Platform | Notes |
-| --- | --- |
-| Ubuntu / any Linux (x86_64) | Stonefish needs OpenGL 4.3 (Mesa or NVIDIA drivers on the host). |
-| Jetson AGX Orin (aarch64) | The `jetson` environment. Vehicle-only OS setup is in [Deployment](/thalassic/deployment/). |
-| Any other Linux on Arm (aarch64) | Vision runs on the CPU. Stonefish needs OpenGL 4.3. |
-| Windows / macOS | Not supported: there is no container. Use a Linux machine or VM. |
+| Platform                         | Notes                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| Ubuntu / any Linux (x86_64)      | Stonefish needs OpenGL 4.3 (Mesa or NVIDIA drivers on the host).                            |
+| Jetson AGX Orin (aarch64)        | The `jetson` environment. Vehicle-only OS setup is in [Deployment](/thalassic/deployment/). |
+| Any other Linux on Arm (aarch64) | Vision runs on the CPU. Stonefish needs OpenGL 4.3.                                         |
+| Windows / macOS                  | Not supported: there is no container. Use a Linux machine or VM.                            |
 
 Outside pixi, the workspace uses only the host's `lsb_release`, `dpkg` and `git`, which the FLIR driver unpacks its SDK with at build time.
 
@@ -70,32 +70,32 @@ clangd also needs `--query-driver=**/.pixi/envs/*/bin/*`: the pixi compiler sear
 
 Both `sim_launch.py` and `pool_test_launch.py` take:
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| `robot_name` | `marlin_v3` | Selects `config/vehicles/<robot_name>.yaml` |
-| `mission` | `""` | Mission to run; empty skips `sub_mission` |
-| `role` | `SURVEY` | The mission's vision model role: `SURVEY` or `SEARCH` |
-| `groot_port` | `5555` | Port of the mission's Groot2 live view, which takes the next port too; `0` turns it off ([Mission system](/thalassic/mission/#live-monitoring-groot2)) |
-| `restart` | per stack | Run the mission under `sub_mission`'s restart supervisor, which reruns it from the beginning at each kill-switch release ([Mission system](/thalassic/mission/#restart-supervisor)) — `true` on the vehicle, `false` in the simulator |
-| `gains` | per stack | Control profile (gains, vehicle model, trajectory limits) in `sub_bringup/config` — `control/gains.yaml` on the vehicle, `control/gains_sim.yaml` in the simulator |
-| `foxglove_port` | `8765` | Websocket port for the Foxglove bridge |
-| `foxglove_compression` | per stack | Deflate the bridge's messages — `true` on the vehicle, for a laptop on its network; `false` in the simulator, where Foxglove connects over localhost and compression only adds latency |
-| `use_sim_time` | per stack | Run every node on the simulator's `/clock` — `false` on the vehicle, `true` in the simulator |
+| Argument               | Default     | Description                                                                                                                                                                                                                           |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `robot_name`           | `marlin_v3` | Selects `config/vehicles/<robot_name>.yaml`                                                                                                                                                                                           |
+| `mission`              | `""`        | Mission to run; empty skips `sub_mission`                                                                                                                                                                                             |
+| `role`                 | `SURVEY`    | The mission's vision model role: `SURVEY` or `SEARCH`                                                                                                                                                                                 |
+| `groot_port`           | `5555`      | Port of the mission's Groot2 live view, which takes the next port too; `0` turns it off ([Mission system](/thalassic/mission/#live-monitoring-groot2))                                                                                |
+| `restart`              | per stack   | Run the mission under `sub_mission`'s restart supervisor, which reruns it from the beginning at each kill-switch release ([Mission system](/thalassic/mission/#restart-supervisor)) — `true` on the vehicle, `false` in the simulator |
+| `gains`                | per stack   | Control profile (gains, vehicle model, trajectory limits) in `sub_bringup/config` — `control/gains.yaml` on the vehicle, `control/gains_sim.yaml` in the simulator                                                                    |
+| `foxglove_port`        | `8765`      | Websocket port for the Foxglove bridge                                                                                                                                                                                                |
+| `foxglove_compression` | per stack   | Deflate the bridge's messages — `true` on the vehicle, for a laptop on its network; `false` in the simulator, where Foxglove connects over localhost and compression only adds latency                                                |
+| `use_sim_time`         | per stack   | Run every node on the simulator's `/clock` — `false` on the vehicle, `true` in the simulator                                                                                                                                          |
 
 `record`, `bag_dir` and `jpeg_quality` are in [Recording](/thalassic/recording/).
 
 ### Simulation only
 
-| Argument | Default | Description |
-| --- | --- | --- |
-| `seed` | `""` (random) | Integer seed for scenario randomization |
-| `DX` | `0.25` | Max X position fuzz of task objects (m) |
-| `DY` | `0.25` | Max Y position fuzz (m) |
-| `DZ` | `0.10` | Max Z position fuzz (m) |
-| `DYAW` | `0.10` | Max yaw fuzz (rad) |
-| `segmentation_camera` | `false` | Add the segmentation camera, whose images the bag records as training labels for remora ([Simulation](/thalassic/simulation/#cameras)) |
-| `depth_camera` | `false` | Add the simulated depth camera |
-| `vision_depth` | `false` | Run Depth Anything on the front camera beside the detector and publish its maps (`sub_vision/depth`, `sub_vision/depth/color`); each run delays that frame's detections, about 0.4 s on an iGPU |
+| Argument              | Default       | Description                                                                                                                                                                                     |
+| --------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `seed`                | `""` (random) | Integer seed for scenario randomization                                                                                                                                                         |
+| `DX`                  | `0.25`        | Max X position fuzz of task objects (m)                                                                                                                                                         |
+| `DY`                  | `0.25`        | Max Y position fuzz (m)                                                                                                                                                                         |
+| `DZ`                  | `0.10`        | Max Z position fuzz (m)                                                                                                                                                                         |
+| `DYAW`                | `0.10`        | Max yaw fuzz (rad)                                                                                                                                                                              |
+| `segmentation_camera` | `false`       | Add the segmentation camera, whose images the bag records as training labels for remora ([Simulation](/thalassic/simulation/#cameras))                                                          |
+| `depth_camera`        | `false`       | Add the simulated depth camera                                                                                                                                                                  |
+| `vision_depth`        | `false`       | Run Depth Anything on the front camera beside the detector and publish its maps (`sub_vision/depth`, `sub_vision/depth/color`); each run delays that frame's detections, about 0.4 s on an iGPU |
 
 `course`, `sensor_noise`, `window_width`, `window_height` and `rendering_quality` are in [Simulation](/thalassic/simulation/#simulation-settings).
 
@@ -107,12 +107,12 @@ Both `sim_launch.py` and `pool_test_launch.py` take:
 
 Four files, layered so the two stacks cannot drift apart:
 
-| File | Runs |
-| --- | --- |
-| `common_launch.py` | Everything both stacks run identically: the transforms, the EKF, `sub_control`, the mission executive, the Foxglove bridge |
-| `description_launch.py` | The vehicle's static transforms, from `config/vehicles/<robot_name>.yaml`. Included by `common_launch.py` |
-| `pool_test_launch.py` | `common_launch.py` + the hardware drivers, the two cameras, and a `sub_vision` node per camera |
-| `sim_launch.py` | `common_launch.py` + Stonefish, the sensor bridges, `robot_state_publisher`, and a `sub_vision` node per camera |
+| File                    | Runs                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `common_launch.py`      | Everything both stacks run identically: the transforms, the EKF, `sub_control`, the mission executive, the Foxglove bridge |
+| `description_launch.py` | The vehicle's static transforms, from `config/vehicles/<robot_name>.yaml`. Included by `common_launch.py`                  |
+| `pool_test_launch.py`   | `common_launch.py` + the hardware drivers, the two cameras, and a `sub_vision` node per camera                             |
+| `sim_launch.py`         | `common_launch.py` + Stonefish, the sensor bridges, `robot_state_publisher`, and a `sub_vision` node per camera            |
 
 The two top-level files differ only in where sensor data comes from and in their defaults for `gains`, `restart`, `foxglove_compression` and `use_sim_time`. Everything downstream is in `common_launch.py`, so a node added there runs in both. An include inherits launch configurations, so an argument set on the command line or defaulted by the parent reaches the nodes inside without being passed through.
 
@@ -145,11 +145,11 @@ pixi run lint       # check only; non-zero exit if anything is off
 
 One tool per language, each pinned in `pixi.lock` so a rebuild never reformats the tree under someone:
 
-| Language | Tool | Config |
-| --- | --- | --- |
-| Python | `ruff` (formatter + linter) | `ruff.toml` — 100 columns, `py312` |
-| C / C++ | `clang-format` | `.clang-format` — 4-space indent, 120 columns |
-| Shell (`scripts/`, `deploy/`) | `shfmt` | `.editorconfig` — 2-space indent |
+| Language                      | Tool                        | Config                                        |
+| ----------------------------- | --------------------------- | --------------------------------------------- |
+| Python                        | `ruff` (formatter + linter) | `ruff.toml` — 100 columns, `py312`            |
+| C / C++                       | `clang-format`              | `.clang-format` — 4-space indent, 120 columns |
+| Shell (`scripts/`, `deploy/`) | `shfmt`                     | `.editorconfig` — 2-space indent              |
 
 `scripts/format.sh` builds its file list with `git ls-files`, which lists submodule directories but not their contents, so upstream code under `src/sub_sim/stonefish_ros2`, `src/sub_sim/stonefish_vendor/stonefish`, `src/sub_drivers/flir_camera_driver` and `src/sub_drivers/waterlinked_dvl` is never reformatted.
 

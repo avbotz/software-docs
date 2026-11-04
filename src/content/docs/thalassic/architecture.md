@@ -55,24 +55,24 @@ On hardware the graph is the same, except that `waterlinked_dvl_driver` publishe
 
 The 50 Hz control node: a jerk-limited trajectory generator, a model-based control law (feedforward from the vehicle model plus full-state feedback) and a box-constrained QP thrust allocator that works around failed thrusters and saturation. It also owns arming and the watchdogs that decide which axes have feedback and whether the thrusters may run. See [Control system](/thalassic/control/).
 
-|  | Topic | Type |
-| --- | --- | --- |
-| Sub | `motion_setpoint` | `sub_control_interfaces/MotionSetpoint` (mode per axis, with an `id` it acknowledges) |
-| Sub | `cmd_vel` | `geometry_msgs/Twist` (stops if the stream does) |
-| Sub | `odometry/filtered` | `nav_msgs/Odometry` |
-| Sub | `imu/data` | `sensor_msgs/Imu` (rate feedback) |
-| Sub | `dvl/velocity` | `geometry_msgs/TwistWithCovarianceStamped` (watchdog only) |
-| Sub | `odometry/depth` | `nav_msgs/Odometry` (watchdog only) |
-| Sub | `altitude` | `sensor_msgs/Range` (DVL altitude) |
-| Sub | `kill_switch` | `std_msgs/Bool` |
-| Sub | `/tf`, `/tf_static` | `tf2_msgs/TFMessage` (the IMU's mounting) |
-| Pub | `control/thrusters` | `sub_control_interfaces/ThrusterCommand` (all eight, stamped, normalized, capped at ±0.6) |
-| Pub | `control/error` | `sub_control_interfaces/Error` (with the id of the last command taken up) |
-| Pub | `control/status` | `sub_control_interfaces/ControllerStatus` |
-| Pub | `control/armed` | `std_msgs/Bool`, latched |
-| Pub | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` (arming, sensors, thrusters) |
-| Client | `set_pose` | `robot_localization/SetPose` |
-| Service | `~/reset_pose` | `std_srvs/Trigger` ([re-zeroes the pose](/thalassic/control/#re-zeroing-the-pose)) |
+|         | Topic               | Type                                                                                      |
+| ------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| Sub     | `motion_setpoint`   | `sub_control_interfaces/MotionSetpoint` (mode per axis, with an `id` it acknowledges)     |
+| Sub     | `cmd_vel`           | `geometry_msgs/Twist` (stops if the stream does)                                          |
+| Sub     | `odometry/filtered` | `nav_msgs/Odometry`                                                                       |
+| Sub     | `imu/data`          | `sensor_msgs/Imu` (rate feedback)                                                         |
+| Sub     | `dvl/velocity`      | `geometry_msgs/TwistWithCovarianceStamped` (watchdog only)                                |
+| Sub     | `odometry/depth`    | `nav_msgs/Odometry` (watchdog only)                                                       |
+| Sub     | `altitude`          | `sensor_msgs/Range` (DVL altitude)                                                        |
+| Sub     | `kill_switch`       | `std_msgs/Bool`                                                                           |
+| Sub     | `/tf`, `/tf_static` | `tf2_msgs/TFMessage` (the IMU's mounting)                                                 |
+| Pub     | `control/thrusters` | `sub_control_interfaces/ThrusterCommand` (all eight, stamped, normalized, capped at ±0.6) |
+| Pub     | `control/error`     | `sub_control_interfaces/Error` (with the id of the last command taken up)                 |
+| Pub     | `control/status`    | `sub_control_interfaces/ControllerStatus`                                                 |
+| Pub     | `control/armed`     | `std_msgs/Bool`, latched                                                                  |
+| Pub     | `/diagnostics`      | `diagnostic_msgs/DiagnosticArray` (arming, sensors, thrusters)                            |
+| Client  | `set_pose`          | `robot_localization/SetPose`                                                              |
+| Service | `~/reset_pose`      | `std_srvs/Trigger` ([re-zeroes the pose](/thalassic/control/#re-zeroing-the-pose))        |
 
 The thruster commands go out every cycle, `control/error` and `control/status` every cycle except while the node waits for the EKF to confirm the pose reset after a kill-switch release. Gains, the vehicle model and trajectory limits come from the hardware or simulation control profile; the thruster layout from the vehicle description. Parameters are in [Control system](/thalassic/control/#configuration).
 
@@ -80,18 +80,18 @@ The thruster commands go out every cycle, `control/error` and `control/status` e
 
 Runs the selected mission as BehaviorTree.CPP XML ([Mission system](/thalassic/mission/)). On the vehicle it runs under `sub_mission/restart`, which stops it when the kill switch is pulled and starts it again on release (`restart` launch argument).
 
-|  | Topic | Type |
-| --- | --- | --- |
-| Sub | `kill_switch` | `std_msgs/Bool` |
-| Sub | `control/armed` | `std_msgs/Bool` (the run starts only once sub_control is armed) |
-| Sub | `control/error` | `sub_control_interfaces/Error` |
-| Sub | `odometry/filtered` | `nav_msgs/Odometry` |
-| Sub | `vision/detections`, `vision/detections_down` | `sub_vision_interfaces/DetectionArray` |
-| Sub | `/tf_static` | `tf2_msgs/TFMessage` (the vehicle's mounts, for `NavigateToTransform`) |
-| Pub | `motion_setpoint` | `sub_control_interfaces/MotionSetpoint` |
-| Client | `sub_vision/load_model`, `sub_vision_down/load_model` | `sub_vision_interfaces/LoadModel` |
-| Client | `set_dropper` | `sub_driver_interfaces/SetDropper` |
-| Client | `launch_torpedo` | `sub_driver_interfaces/LaunchTorpedo` |
+|        | Topic                                                 | Type                                                                   |
+| ------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| Sub    | `kill_switch`                                         | `std_msgs/Bool`                                                        |
+| Sub    | `control/armed`                                       | `std_msgs/Bool` (the run starts only once sub_control is armed)        |
+| Sub    | `control/error`                                       | `sub_control_interfaces/Error`                                         |
+| Sub    | `odometry/filtered`                                   | `nav_msgs/Odometry`                                                    |
+| Sub    | `vision/detections`, `vision/detections_down`         | `sub_vision_interfaces/DetectionArray`                                 |
+| Sub    | `/tf_static`                                          | `tf2_msgs/TFMessage` (the vehicle's mounts, for `NavigateToTransform`) |
+| Pub    | `motion_setpoint`                                     | `sub_control_interfaces/MotionSetpoint`                                |
+| Client | `sub_vision/load_model`, `sub_vision_down/load_model` | `sub_vision_interfaces/LoadModel`                                      |
+| Client | `set_dropper`                                         | `sub_driver_interfaces/SetDropper`                                     |
+| Client | `launch_torpedo`                                      | `sub_driver_interfaces/LaunchTorpedo`                                  |
 
 ### `sub_vision` / `sub_vision_down` (`sub_vision`)
 
@@ -123,13 +123,13 @@ Driver for the WaterLinked A50 DVL (the team's fork, at commit `7df97ed` or late
 
 ### `sub_low` / `naviguider_imu_driver` (`sub_serial_drivers`) — hardware only
 
-Both are C++ nodes on one base, `SerialNode`, which keeps the link up: whenever the device goes away (unplugged, reset), stops taking writes for 50 ms, or sends nothing useful for `data_timeout` (1 s), it closes the port, tries it again every `reconnect_period` (1 s), and tells the device what it needs to know once it is back. All of it runs on the executor's thread with non-blocking I/O, so a hung device cannot hang the node, and the launch file respawns either one a second after a crash.
+Both are C++ nodes on one base, `SerialNode`, which keeps the link up: whenever the device goes away (unplugged, reset), stops taking writes for 50 ms, or sends nothing useful for `data_timeout` (1 s), it closes the port, tries it again every `reconnect_period` (1 s), and tells the device what it needs to know once it is back. For the first 100 ms after the port opens it drops everything it receives: a USB device keeps what it sent while the port was closed (the maritime board about 7 s of lines) and delivers it at once, and it would look current. All of it runs on the executor's thread with non-blocking I/O, so a hung device cannot hang the node, and the launch file respawns either one a second after a crash.
 
 `sub_low` talks to the [maritime](https://github.com/avbotz/maritime) firmware over `/dev/maritime`: `control/thrusters` out, as one `m` line per cycle (protocol 2); `kill_switch` and `odometry/depth` in; and the `launch_torpedo` and `set_dropper` services, which each pick one of two (`torpedo_id`, `dropper_id`: 0 or 1). It stops every thruster whenever the port opens and when it exits, and ignores a thruster command older than `command_timeout` (0.5 s). When the commands stop, whether `sub_control`, `sub_low` or the USB link died, the board's own 0.5 s command watchdog stops the thrusters, and its hardware watchdog covers the board itself ([Control system](/thalassic/control/#safety)).
 
-`naviguider_imu_driver` reads the NaviGuider IMU over `/dev/naviguider_imu` and publishes ENU `imu/data` with `frame_id` `marlin_v3/imu_link`: one message per gyro sample, but only while the orientation and acceleration are fresh too, so a sensor that stops makes `imu/data` stop instead of repeating (and, after `data_timeout`, restarts the module). The gyro's accuracy field is its calibration status (0–3): below 2 the rate covariance includes a typical uncalibrated bias and its diagnostics warn.
+`naviguider_imu_driver` reads the NaviGuider IMU over `/dev/naviguider_imu` and publishes ENU `imu/data` with `frame_id` `marlin_v3/imu_link`: one message per gyro sample, but only while the orientation and acceleration are fresh too, so a sensor that stops makes `imu/data` stop instead of repeating (and, after `data_timeout`, restarts the module). The module's link is fixed at 115200 baud of text, so the rates share it: by default the gyro runs at 100 Hz (so `imu/data` does too), the orientation at 50 Hz, and the accelerometer, which nothing reads, is off (`gyro_rate`, `orientation_rate`, `accel_rate`). An orientation or acceleration that has not changed since the previous message is marked not provided (covariance -1), so the EKF fuses each sample once. The gyro's accuracy field is its calibration status (0–3): below 2 the rate covariance includes a typical uncalibrated bias and its diagnostics warn.
 
-Both publish `/diagnostics`, including a `diagnostic_updater` rate check for each stream: `imu/data` at the gyro rate, `kill_switch` and `odometry/depth` at the board's 5 Hz, and `control/thrusters` at 2 Hz or more with stamps no older than `command_timeout`.
+Both publish `/diagnostics`, including a `diagnostic_updater` rate check for each stream: `imu/data` at the gyro rate, `kill_switch` and `odometry/depth` at the board's 5 Hz, and `control/thrusters` at 2 Hz or more with stamps no older than `command_timeout`. `sub_low: board` is an error when the board's heartbeat stops or it speaks a protocol other than 2. Their parameters are read-only and validated (`generate_parameter_library`, `src/*_parameters.yaml`).
 
 ### `sim_dvl_remapper` (`sub_sim_sensors`) — sim only
 

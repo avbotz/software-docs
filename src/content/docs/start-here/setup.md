@@ -15,12 +15,12 @@ description: Get Linux, install Thalassic and its simulator, set up an editor an
 
 Thalassic runs only on Linux; we use **Ubuntu 24.04 LTS**. Your options, best first:
 
-| Option | Good | Bad |
-| --- | --- | --- |
-| **Ubuntu on its own computer**, such as an old laptop | Nothing to lose, and full speed | Needs a spare computer |
-| **Dual boot** with Ubuntu beside Windows | Full speed. You pick which one to use at startup | Repartitions your disk, so back up first |
-| **WSL 2** on Windows | Easy to install, nothing to repartition | Untested on the team |
-| **A virtual machine** on Windows or Mac | Easy to delete and start over | Slow, and probably no OpenGL 4.3, so run the simulator without a window |
+| Option                                                | Good                                             | Bad                                                                     |
+| ----------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------- |
+| **Ubuntu on its own computer**, such as an old laptop | Nothing to lose, and full speed                  | Needs a spare computer                                                  |
+| **Dual boot** with Ubuntu beside Windows              | Full speed. You pick which one to use at startup | Repartitions your disk, so back up first                                |
+| **WSL 2** on Windows                                  | Easy to install, nothing to repartition          | Untested on the team                                                    |
+| **A virtual machine** on Windows or Mac               | Easy to delete and start over                    | Slow, and probably no OpenGL 4.3, so run the simulator without a window |
 
 Ubuntu's [install guide](https://ubuntu.com/tutorials/install-ubuntu-desktop) also covers dual booting. For WSL, follow [Microsoft's guide](https://learn.microsoft.com/en-us/windows/wsl/install). For a virtual machine, try [VirtualBox](https://www.virtualbox.org/), or UTM on a Mac.
 
@@ -65,14 +65,14 @@ What these do:
 
 `install.sh` prints a line as it starts each step:
 
-| It prints | What is happening |
-| --- | --- |
-| `Installing pixi` | Installs [pixi](/concepts/build-tools/#pixi-installs-everything), the tool that manages everything else |
-| `Fetching submodules` | Makes sure the submodules are there |
-| `Creating the pixi environment` | Downloads ROS 2, the compilers and libraries, several GB in all |
-| `Installing the git hooks` | Sets up the automatic checks that run when you commit |
-| `Building the workspace` | Compiles all the code |
-| `Downloading the model weights` | Downloads the trained neural networks |
+| It prints                       | What is happening                                                                   |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `Installing pixi`               | Installs [pixi](/concepts/build-tools/#pixi), the tool that manages everything else |
+| `Fetching submodules`           | Makes sure the submodules are there                                                 |
+| `Creating the pixi environment` | Downloads ROS 2, the compilers and libraries, several GB in all                     |
+| `Installing the git hooks`      | Sets up the automatic checks that run when you commit                               |
+| `Building the workspace`        | Compiles all the code                                                               |
+| `Downloading the model weights` | Downloads the trained neural networks                                               |
 
 The build prints many warnings, which are fine. A successful build ends like this:
 

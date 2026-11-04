@@ -24,16 +24,16 @@ Then reboot, so the new groups apply.
 
 It installs the files in `deploy/jetson/files/` and the udev rules in `deploy/udev/`. Everything it applies survives a reboot. It is idempotent: re-run it after reflashing, or after editing anything in either directory.
 
-| What | Installed as | Why |
-| --- | --- | --- |
-| Static address `192.168.5.245/24` and MTU 9000 on `end0` | `/etc/netplan/60-thalassic-vehicle.yaml` | The DVL and the down camera are pointed at that address, and the GigE camera needs jumbo frames ([MTU](/thalassic/networking/#mtu)) |
-| NTP server for `192.168.5.0/24` | `/etc/chrony/conf.d/thalassic.conf` | The DVL and the down camera take their time from the Jetson, and `systemd-timesyncd` cannot serve |
-| chrony, if it is missing | the `chrony` package | The NTP server above. Needs a network the first time |
-| Power mode MAXN, clocks left to DVFS | `/etc/systemd/system/thalassic-power-mode.service` | JetPack boots power-capped, and `nvpmodel -m 0` by hand does not survive a reflash. DVFS still scales the clocks with load, and throttles them when the SoC runs hot |
-| Fan pinned at full speed | `/etc/systemd/system/thalassic-fan.service` + `/usr/local/sbin/thalassic-fan-max` | In the sealed hull, the fan carries heat to the water-cooled wall. `nvfancontrol` waits for heat before it spins up, so it is disabled |
-| Socket buffers, 10 MB | `/etc/sysctl.d/60-thalassic-gige.conf` | The GigE camera bursts a frame faster than the default receive buffer holds |
-| udev rules from `deploy/udev/` | `/etc/udev/rules.d/` | Stable device names ([udev rules](#udev-rules)) |
-| User added to the `dialout` and `video` groups | `/etc/group` | Non-root access to the serial devices and cameras. Under `sudo` this is root, not the vehicle user: see [Open items](#open-items) |
+| What                                                     | Installed as                                                                      | Why                                                                                                                                                                  |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Static address `192.168.5.245/24` and MTU 9000 on `end0` | `/etc/netplan/60-thalassic-vehicle.yaml`                                          | The DVL and the down camera are pointed at that address, and the GigE camera needs jumbo frames ([MTU](/thalassic/networking/#mtu))                                  |
+| NTP server for `192.168.5.0/24`                          | `/etc/chrony/conf.d/thalassic.conf`                                               | The DVL and the down camera take their time from the Jetson, and `systemd-timesyncd` cannot serve                                                                    |
+| chrony, if it is missing                                 | the `chrony` package                                                              | The NTP server above. Needs a network the first time                                                                                                                 |
+| Power mode MAXN, clocks left to DVFS                     | `/etc/systemd/system/thalassic-power-mode.service`                                | JetPack boots power-capped, and `nvpmodel -m 0` by hand does not survive a reflash. DVFS still scales the clocks with load, and throttles them when the SoC runs hot |
+| Fan pinned at full speed                                 | `/etc/systemd/system/thalassic-fan.service` + `/usr/local/sbin/thalassic-fan-max` | In the sealed hull, the fan carries heat to the water-cooled wall. `nvfancontrol` waits for heat before it spins up, so it is disabled                               |
+| Socket buffers, 10 MB                                    | `/etc/sysctl.d/60-thalassic-gige.conf`                                            | The GigE camera bursts a frame faster than the default receive buffer holds                                                                                          |
+| udev rules from `deploy/udev/`                           | `/etc/udev/rules.d/`                                                              | Stable device names ([udev rules](#udev-rules))                                                                                                                      |
+| User added to the `dialout` and `video` groups           | `/etc/group`                                                                      | Non-root access to the serial devices and cameras. Under `sudo` this is root, not the vehicle user: see [Open items](#open-items)                                    |
 
 It runs `netplan apply` every time, after `netplan generate` has validated the file in a scratch copy, so a rejected file changes nothing and the vehicle keeps its network. Changing the address drops any SSH session over `end0`, so run the script from the console after changing it.
 
@@ -74,7 +74,7 @@ The vehicle's launch file sets `device: gpu`, so a GPU that cannot run a model f
 
 ### maritime
 
-The thruster board runs [maritime](https://github.com/avbotz/maritime). `sub_low` needs firmware with protocol 2: older firmware does not understand its `m` thruster lines and has no command watchdog. `/diagnostics_agg` shows the protocol the board reports under `sub_low: board`. Build and flash it as maritime's README says (`west build -b rpi_pico`, then `west flash -r uf2`, or copy `build/zephyr/zephyr.uf2` to the board in BOOTSEL mode).
+The thruster board runs [maritime](https://github.com/avbotz/maritime). `sub_low` needs firmware with protocol 2: older firmware does not understand its `m` thruster lines and has no command watchdog. `/diagnostics_agg` shows the protocol the board reports under `sub_low: board`, which is an error for any other protocol, or for firmware that sends no heartbeat at all. Build and flash it as maritime's README says (`west build -b rpi_pico`, then `west flash -r uf2`, or copy `build/zephyr/zephyr.uf2` to the board in BOOTSEL mode).
 
 ## Running
 

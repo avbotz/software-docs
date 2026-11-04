@@ -9,18 +9,18 @@ The simulator is [Stonefish](https://github.com/patrykcieslak/stonefish), an und
 
 `sim_launch.py` runs these in place of the vehicle's drivers, beside everything in `common_launch.py`. The `sub_sim_sensors` bridges share one composable-node container (`sim_sensors_container`); the others are separate processes.
 
-| Node | Package | Purpose |
-| --- | --- | --- |
-| `stonefish_simulator` | `stonefish_ros2` | Physics engine + sensor simulation |
+| Node                    | Package                 | Purpose                                                                                                                                                                                                               |
+| ----------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stonefish_simulator`   | `stonefish_ros2`        | Physics engine + sensor simulation                                                                                                                                                                                    |
 | `robot_state_publisher` | `robot_state_publisher` | Publishes the URDF on `robot_description`. Nothing publishes the `joint_states` it reads (Stonefish's are on `sim/joint_states`), so it publishes no TF; the grabber and dropper frames come from `static_transforms` |
-| `sim_dvl_remapper` | `sub_sim_sensors` | `stonefish_ros2/DVL` → `dvl/velocity` (`TwistWithCovarianceStamped`) and `altitude` |
-| `sim_pressure_to_depth` | `sub_sim_sensors` | `sim/pressure` → `odometry/depth` (ENU z), as `sub_low` reports it on the vehicle |
-| `sim_thrusters` | `sub_sim_sensors` | `control/thrusters` → Stonefish, with ESC lag, the board's command watchdog and fault injection |
-| `sim_imu_remapper` | `sub_sim_sensors` | Stonefish NED IMU → ENU `imu/data` |
-| `sim_kill_switch` | `sub_sim_sensors` | `sim/kill_switch` → `kill_switch` after startup delay (`off_delay`; 0 starts released) |
-| `sim_torpedo_launcher` | `sub_sim_sensors` | Torpedo launch service |
-| `sim_dropper` | `sub_sim_sensors` | Dropper service, for both droppers |
-| `sim_grabber` | `sub_sim_sensors` | `set_grabber` service: closing the jaws on an object glues it to the robot, opening them lets go |
+| `sim_dvl_remapper`      | `sub_sim_sensors`       | `stonefish_ros2/DVL` → `dvl/velocity` (`TwistWithCovarianceStamped`) and `altitude`                                                                                                                                   |
+| `sim_pressure_to_depth` | `sub_sim_sensors`       | `sim/pressure` → `odometry/depth` (ENU z), as `sub_low` reports it on the vehicle                                                                                                                                     |
+| `sim_thrusters`         | `sub_sim_sensors`       | `control/thrusters` → Stonefish, with ESC lag, the board's command watchdog and fault injection                                                                                                                       |
+| `sim_imu_remapper`      | `sub_sim_sensors`       | Stonefish NED IMU → ENU `imu/data`                                                                                                                                                                                    |
+| `sim_kill_switch`       | `sub_sim_sensors`       | `sim/kill_switch` → `kill_switch` after startup delay (`off_delay`; 0 starts released)                                                                                                                                |
+| `sim_torpedo_launcher`  | `sub_sim_sensors`       | Torpedo launch service                                                                                                                                                                                                |
+| `sim_dropper`           | `sub_sim_sensors`       | Dropper service, for both droppers                                                                                                                                                                                    |
+| `sim_grabber`           | `sub_sim_sensors`       | `set_grabber` service: closing the jaws on an object glues it to the robot, opening them lets go                                                                                                                      |
 
 ## Sensors and actuators
 
@@ -66,25 +66,25 @@ Each of the two droppers holds one ball, `dropper_ball_0` and `dropper_ball_1` i
 
 Set in `sim_launch.py`:
 
-| Setting | Value |
-| --- | --- |
-| `simulation_rate` | 500 Hz |
-| `publish_clock` | true: every node runs on the simulation's `/clock` (`use_sim_time`) |
-| `state_publish_rate` | 100 Hz: `/clock` and the robot's joint and thruster states |
-| `OMP_WAIT_POLICY` | `PASSIVE`, for every node |
-| Fast DDS profile | `config/stonefish_fastdds.xml`, for Stonefish only: a 64 MB shared-memory segment for the camera images |
+| Setting              | Value                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| `simulation_rate`    | 500 Hz                                                                                                  |
+| `publish_clock`      | true: every node runs on the simulation's `/clock` (`use_sim_time`)                                     |
+| `state_publish_rate` | 100 Hz: `/clock` and the robot's joint and thruster states                                              |
+| `OMP_WAIT_POLICY`    | `PASSIVE`, for every node                                                                               |
+| Fast DDS profile     | `config/stonefish_fastdds.xml`, for Stonefish only: a 64 MB shared-memory segment for the camera images |
 
 ### Launch arguments
 
-| Argument | Default |  |
-| --- | --- | --- |
-| `course` | D | The dock the robot starts from on the course map: `A`, `B1`, `C1` or `D` ([Course layout](#course-layout)) |
-| `window_width` × `window_height` | 1280 × 720 | Stonefish window |
-| `rendering_quality` | medium | `low`, `medium` or `high`, for the window and the cameras |
-| `sensor_noise` | true | Give the DVL, IMU and pressure sensor the noise of the real ones |
-| `segmentation_camera` | false | Add the segmentation camera (`sim/segment`): the object each front-camera pixel shows, which `record:=true` keeps for [remora](https://github.com/avbotz/remora)'s labels ([Recording](/thalassic/recording/#what-a-bag-holds)). It renders in the front camera's frames, not on a turn of its own |
-| `depth_camera` | false | Add the depth camera (`sim/depth_camera`) |
-| `headless` | false | Run `stonefish_simulator_nogpu`: no window, no GPU or display, and no cameras (so no vision); physics, the DVL, IMU, pressure sensor and actuators as usual. For control, safety and mission-logic tests, and CI |
+| Argument                         | Default    |                                                                                                                                                                                                                                                                                                    |
+| -------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `course`                         | D          | The dock the robot starts from on the course map: `A`, `B1`, `C1` or `D` ([Course layout](#course-layout))                                                                                                                                                                                         |
+| `window_width` × `window_height` | 1280 × 720 | Stonefish window                                                                                                                                                                                                                                                                                   |
+| `rendering_quality`              | medium     | `low`, `medium` or `high`, for the window and the cameras                                                                                                                                                                                                                                          |
+| `sensor_noise`                   | true       | Give the DVL, IMU and pressure sensor the noise of the real ones                                                                                                                                                                                                                                   |
+| `segmentation_camera`            | false      | Add the segmentation camera (`sim/segment`): the object each front-camera pixel shows, which `record:=true` keeps for [remora](https://github.com/avbotz/remora)'s labels ([Recording](/thalassic/recording/#what-a-bag-holds)). It renders in the front camera's frames, not on a turn of its own |
+| `depth_camera`                   | false      | Add the depth camera (`sim/depth_camera`)                                                                                                                                                                                                                                                          |
+| `headless`                       | false      | Run `stonefish_simulator_nogpu`: no window, no GPU or display, and no cameras (so no vision); physics, the DVL, IMU, pressure sensor and actuators as usual. For control, safety and mission-logic tests, and CI                                                                                   |
 
 ## Scenarios
 
@@ -102,16 +102,16 @@ Scenarios are Stonefish `.scn` XML files. Thalassic generates them at launch fro
 
 The pool template (`woollett.scn.j2`) has these helpers:
 
-| Variable / Function | Description |
-| --- | --- |
-| `fuzz(base, mag)` | `base ± uniform(mag)` |
-| `fuzz_z(base, mag)` | Same but clamped to ≥ 0 |
-| `rand(a, b)` | `uniform(a, b)` |
-| `choose(options)` | Pick one item at random |
-| `DX`, `DY`, `DZ`, `DYAW` | Per-axis fuzz magnitudes passed from launch args |
-| `course` | The dock the robot starts from (`A`, `B1`, `C1` or `D`), from the `course` launch argument |
-| `render_robot(x, y, z, roll, pitch, yaw)` | Renders the robot at that pose and returns the `.scn` path to `<include>` |
-| `PI` | `math.pi` |
+| Variable / Function                       | Description                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `fuzz(base, mag)`                         | `base ± uniform(mag)`                                                                      |
+| `fuzz_z(base, mag)`                       | Same but clamped to ≥ 0                                                                    |
+| `rand(a, b)`                              | `uniform(a, b)`                                                                            |
+| `choose(options)`                         | Pick one item at random                                                                    |
+| `DX`, `DY`, `DZ`, `DYAW`                  | Per-axis fuzz magnitudes passed from launch args                                           |
+| `course`                                  | The dock the robot starts from (`A`, `B1`, `C1` or `D`), from the `course` launch argument |
+| `render_robot(x, y, z, roll, pitch, yaw)` | Renders the robot at that pose and returns the `.scn` path to `<include>`                  |
+| `PI`                                      | `math.pi`                                                                                  |
 
 The `seed` launch argument makes a scenario reproducible. Without one, the launch picks a random seed, which `record:=true` stores in the run's bag ([Recording](/thalassic/recording/)).
 
@@ -127,15 +127,15 @@ pixi run up -- course:=C1
 
 3D models for competition tasks live in `src/sub_sim/sub_sim/data/models/`:
 
-| Task | Objects |
-| --- | --- |
-| Gate | gate with the Survey & Repair and Search & Rescue images, on either side at random |
-| Slalom | slalom poles: white 1.524 m either side of red |
-| Bin | four bins on a PVC pipeline, two with the fire image (Survey & Repair) and two with blood (Search & Rescue) |
-| Torpedoes | board with both roles' images, in one of two layouts (`torpboard_v1`, `torpboard_v2`) at random |
-| Octagon | octagon with its Survey, Search, Repair and Rescue images, table, bottles, ladles |
-| Path | orange path markers, 1.2 m long |
-| Pools | woollett (`pools/woollett/`, the default scenario), natatorium |
+| Task      | Objects                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------- |
+| Gate      | gate with the Survey & Repair and Search & Rescue images, on either side at random                          |
+| Slalom    | slalom poles: white 1.524 m either side of red                                                              |
+| Bin       | four bins on a PVC pipeline, two with the fire image (Survey & Repair) and two with blood (Search & Rescue) |
+| Torpedoes | board with both roles' images, in one of two layouts (`torpboard_v1`, `torpboard_v2`) at random             |
+| Octagon   | octagon with its Survey, Search, Repair and Rescue images, table, bottles, ladles                           |
+| Path      | orange path markers, 1.2 m long                                                                             |
+| Pools     | woollett (`pools/woollett/`, the default scenario), natatorium                                              |
 
 Each prop's folder holds one Stonefish body:
 

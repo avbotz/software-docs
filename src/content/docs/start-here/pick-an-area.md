@@ -5,15 +5,15 @@ description: The parts of the software you could work on, what each is like, and
 
 After the [tutorials](/tutorials/first-mission/), which touch most of these areas, pick one to go deeper in. Most people end up working across a few.
 
-| If you like... | Try |
-| --- | --- |
-| Puzzles and strategy, and seeing results quickly | [Missions](#missions) |
-| Math and physics, making things stable | [Control](#control) |
-| Images, machine learning | [Vision](#vision) |
-| 3D graphics, building worlds | [Simulation](#simulation) |
-| Hardware, things you can touch | [Drivers and firmware](#drivers-and-firmware) |
-| Making things work reliably for everyone else | [Tools and infrastructure](#tools-and-infrastructure) |
-| Explaining things | [Docs](#docs) |
+| If you like...                                   | Try                                                   |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| Puzzles and strategy, and seeing results quickly | [Missions](#missions)                                 |
+| Math and physics, making things stable           | [Control](#control)                                   |
+| Images, machine learning                         | [Vision](#vision)                                     |
+| 3D graphics, building worlds                     | [Simulation](#simulation)                             |
+| Hardware, things you can touch                   | [Drivers and firmware](#drivers-and-firmware)         |
+| Making things work reliably for everyone else    | [Tools and infrastructure](#tools-and-infrastructure) |
+| Explaining things                                | [Docs](#docs)                                         |
 
 ## Missions
 

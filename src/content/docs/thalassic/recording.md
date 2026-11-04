@@ -12,11 +12,11 @@ pixi run up -- record:=true
 pixi run -e jetson up pool_test -- record:=true bag_dir:=/mnt/ssd/bags jpeg_quality:=95
 ```
 
-| Launch argument | Default |  |
-| --- | --- | --- |
-| `record` | `false` | `true` records the run |
-| `bag_dir` | `<workspace>/bags` | Where each run's folder goes |
-| `jpeg_quality` | `85` | JPEG quality of the cameras' compressed images, which the bag records and Foxglove shows. image_transport's own default is 95 |
+| Launch argument | Default            |                                                                                                                               |
+| --------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `record`        | `false`            | `true` records the run                                                                                                        |
+| `bag_dir`       | `<workspace>/bags` | Where each run's folder goes                                                                                                  |
+| `jpeg_quality`  | `85`               | JPEG quality of the cameras' compressed images, which the bag records and Foxglove shows. image_transport's own default is 95 |
 
 Each run gets a folder named after its start time, `sim` or the robot's name, and the mission if there is one. `bags/` is ignored by git.
 
@@ -32,12 +32,12 @@ The recorder is `ros2 bag record`, started by `recorder()` in `sub_bringup/sub_b
 
 Every topic as it was published, including `/tf_static`, `/rosout` (every node's log) and `/diagnostics`, plus, in the sim, the robot description and the ground truth (`sim/odometry`, `sim/objects/*`). In the sim the bag is stamped with sim time, like the messages in it. These are left out:
 
-| Left out | Why |
-| --- | --- |
-| Raw colour camera images (`front_camera/image_raw`, and in the sim `down_camera/image_raw`) | Recorded as JPEG instead: the `<image>/compressed` copy that image_transport publishes beside them |
-| image_transport's `theora`, `zstd` and `compressedDepth` copies | The same images again |
-| `sub_vision/depth`, `sub_vision/depth/color` (in the sim with `vision_depth:=true`) | Depth Anything's maps, for viewing: about 6 MB a frame |
-| `/clock` (sim) | The bag's timestamps are already sim time; `ros2 bag play --clock` publishes it again |
+| Left out                                                                                      | Why                                                                                                                                        |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Raw colour camera images (`front_camera/image_raw`, and in the sim `down_camera/image_raw`)   | Recorded as JPEG instead: the `<image>/compressed` copy that image_transport publishes beside them                                         |
+| image_transport's `theora`, `zstd` and `compressedDepth` copies                               | The same images again                                                                                                                      |
+| `sub_vision/depth`, `sub_vision/depth/color` (in the sim with `vision_depth:=true`)           | Depth Anything's maps, for viewing: about 6 MB a frame                                                                                     |
+| `/clock` (sim)                                                                                | The bag's timestamps are already sim time; `ros2 bag play --clock` publishes it again                                                      |
 | `sim/segment/image_raw` and `sim/segment/image_color` (sim, with `segmentation_camera:=true`) | Recorded as the lossless PNG copy `sim/segment/image_raw/compressed` instead (below); `image_color` is the same object ids in false colour |
 
 ### Images that are not JPEG

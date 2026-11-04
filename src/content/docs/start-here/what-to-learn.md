@@ -54,19 +54,19 @@ Our control, mission and driver code is C++. It is harder than Python, and you c
 
 High school math is enough for most of the code.
 
-| Topic | Where it comes up | Learn it from |
-| --- | --- | --- |
-| Trigonometry and radians | Every angle in the code. See [Coordinates](/concepts/coordinates/) | [Khan Academy](https://www.khanacademy.org/math/trigonometry) |
-| Vectors and matrices | Rotations, sharing force between thrusters | [3Blue1Brown's linear algebra series](https://www.3blue1brown.com/topics/linear-algebra) |
-| Force, velocity, acceleration | The controller | Your physics class |
-| Rates of change and integrals | The D and I in PID. [Control and PID](/concepts/control/) explains them without calculus |  |
+| Topic                         | Where it comes up                                                                        | Learn it from                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Trigonometry and radians      | Every angle in the code. See [Coordinates](/concepts/coordinates/)                       | [Khan Academy](https://www.khanacademy.org/math/trigonometry)                            |
+| Vectors and matrices          | Rotations, sharing force between thrusters                                               | [3Blue1Brown's linear algebra series](https://www.3blue1brown.com/topics/linear-algebra) |
+| Force, velocity, acceleration | The controller                                                                           | Your physics class                                                                       |
+| Rates of change and integrals | The D and I in PID. [Control and PID](/concepts/control/) explains them without calculus |                                                                                          |
 
 ## Once you pick an area
 
-| Area | Learn from |
-| --- | --- |
-| Missions | [BehaviorTree.CPP's tutorials](https://www.behaviortree.dev/docs/intro) |
-| Control | [Understanding PID Control](https://www.mathworks.com/videos/series/understanding-pid-control.html), a short video series by MathWorks |
-| Vision | [OpenCV-Python tutorials](https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html) and the [Ultralytics docs](https://docs.ultralytics.com/) for YOLO models |
-| State estimation | [Kalman Filter from the Ground Up](https://www.kalmanfilter.net/), the basis of the EKF |
-| Coordinate frames | [Introducing tf2](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Introduction-To-Tf2.html) |
+| Area              | Learn from                                                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Missions          | [BehaviorTree.CPP's tutorials](https://www.behaviortree.dev/docs/intro)                                                                                       |
+| Control           | [Understanding PID Control](https://www.mathworks.com/videos/series/understanding-pid-control.html), a short video series by MathWorks                        |
+| Vision            | [OpenCV-Python tutorials](https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html) and the [Ultralytics docs](https://docs.ultralytics.com/) for YOLO models |
+| State estimation  | [Kalman Filter from the Ground Up](https://www.kalmanfilter.net/), the basis of the EKF                                                                       |
+| Coordinate frames | [Introducing tf2](https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Introduction-To-Tf2.html)                                                          |

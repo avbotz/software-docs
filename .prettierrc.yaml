@@ -1,8 +1,7 @@
 printWidth: 100
 plugins: [prettier-plugin-astro]
 overrides:
-  # One line per paragraph, so an edit shows as an edit to that paragraph. Tables stay compact
-  # when they are too wide to align.
   - files: ["*.md", "*.mdx"]
     options:
       proseWrap: never
+      printWidth: 10000

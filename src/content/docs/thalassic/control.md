@@ -28,13 +28,13 @@ Each cycle first runs arming and the watchdogs, which decide whether the thruste
 
 Commands arrive as `sub_control_interfaces/MotionSetpoint` on `motion_setpoint`, which sets a mode for each axis `[x, y, z, roll, pitch, yaw]`:
 
-| Mode | Value | Meaning |
-| --- | --- | --- |
-| `KEEP` | 0 | Leave this axis as it is |
-| `POSITION` | 1 | Move smoothly to `position[i]` and hold it |
-| `VELOCITY` | 2 | Track `velocity[i]` |
-| `HOLD` | 3 | Come to a smooth stop and hold wherever that is |
-| `EFFORT` | 4 | Open loop: push with `effort[i]` along the body axis, no feedback (testing, identification) |
+| Mode       | Value | Meaning                                                                                     |
+| ---------- | ----- | ------------------------------------------------------------------------------------------- |
+| `KEEP`     | 0     | Leave this axis as it is                                                                    |
+| `POSITION` | 1     | Move smoothly to `position[i]` and hold it                                                  |
+| `VELOCITY` | 2     | Track `velocity[i]`                                                                         |
+| `HOLD`     | 3     | Come to a smooth stop and hold wherever that is                                             |
+| `EFFORT`   | 4     | Open loop: push with `effort[i]` along the body axis, no feedback (testing, identification) |
 
 One message can say "surge at 0.3 m/s, hold 1 m depth and this heading", and a later one can change only the heading. x and y always share a mode. Their velocity is along the vehicle's heading (`velocity_frame: HEADING`, yaw only, so pitching does not turn "forward" into a dive) or along odom x/y (`WORLD`). `altitude: true` makes a z `POSITION` target an altitude above the bottom, from the DVL; the message is rejected if that target is negative or there is no DVL altitude.
 
@@ -207,20 +207,20 @@ Even an _undeclared_ failure is ridden through: the integrators take up the miss
 
 ## Safety
 
-| Condition | Response |
-| --- | --- |
-| Killed | Thrusters off, disarmed |
-| Released, not armed | Thrusters off until it arms: the kill switch must have been engaged since `sub_control` started (`safety.require_kill_cycle`), so a stack that starts or restarts with the switch released does not drive off; and the state estimate, the IMU and depth must be fresh. It logs what it is waiting for every 5 s and publishes `control/armed` once armed |
-| Armed | The EKF pose is reset (x, y and yaw to zero; depth, roll and pitch kept, since the sensors would only pull them back); the thrusters stay off until the EKF confirms (or 1 s passes), then the controller starts holding where the vehicle is, level |
-| No odometry for `safety.state_timeout`, or no IMU for `safety.attitude_timeout` | Thrusters off (`failsafe`): the positively buoyant hull floats up. Without the IMU the EKF's attitude is only a drifting prediction, which the controller would fight. Resumes when both return |
-| No DVL for `safety.dvl_timeout` | x/y feedback off (the EKF only predicts them): the reference follows the estimate; targets are kept and resumed when the DVL returns |
-| No depth for `safety.depth_timeout` | z feedback and the buoyancy hold off: the vehicle floats up. An `EFFORT` axis still gets exactly its effort |
-| No DVL altitude for `safety.altitude_timeout` while holding altitude | Holds depth instead |
-| `cmd_vel` stream stops for `safety.cmd_vel_timeout` | Those axes stop and hold |
-| `sub_control` stops publishing, or `sub_low` or the USB link dies | The board's own watchdog stops every thruster after 0.5 s without a command (in the simulator `sim_thrusters` does, after its `command_timeout`); `sub_low` reopens the port when it can, stopping the thrusters first |
-| `sub_control`'s commands arrive late | `sub_low` (in the simulator `sim_thrusters`) ignores a command older than its `command_timeout` (0.5 s), so the board's watchdog stops the thrusters if no fresh one follows |
-| The board's main loop stalls | Its hardware watchdog resets it after 1 s, which stops the thruster PWM. After any board reset it stays killed until the kill switch is cycled |
-| Thruster fails | See [Thruster failure](#thruster-failure) |
+| Condition                                                                       | Response                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Killed                                                                          | Thrusters off, disarmed                                                                                                                                                                                                                                                                                                                                   |
+| Released, not armed                                                             | Thrusters off until it arms: the kill switch must have been engaged since `sub_control` started (`safety.require_kill_cycle`), so a stack that starts or restarts with the switch released does not drive off; and the state estimate, the IMU and depth must be fresh. It logs what it is waiting for every 5 s and publishes `control/armed` once armed |
+| Armed                                                                           | The EKF pose is reset (x, y and yaw to zero; depth, roll and pitch kept, since the sensors would only pull them back); the thrusters stay off until the EKF confirms (or 1 s passes), then the controller starts holding where the vehicle is, level                                                                                                      |
+| No odometry for `safety.state_timeout`, or no IMU for `safety.attitude_timeout` | Thrusters off (`failsafe`): the positively buoyant hull floats up. Without the IMU the EKF's attitude is only a drifting prediction, which the controller would fight. Resumes when both return                                                                                                                                                           |
+| No DVL for `safety.dvl_timeout`                                                 | x/y feedback off (the EKF only predicts them): the reference follows the estimate; targets are kept and resumed when the DVL returns                                                                                                                                                                                                                      |
+| No depth for `safety.depth_timeout`                                             | z feedback and the buoyancy hold off: the vehicle floats up. An `EFFORT` axis still gets exactly its effort                                                                                                                                                                                                                                               |
+| No DVL altitude for `safety.altitude_timeout` while holding altitude            | Holds depth instead                                                                                                                                                                                                                                                                                                                                       |
+| `cmd_vel` stream stops for `safety.cmd_vel_timeout`                             | Those axes stop and hold                                                                                                                                                                                                                                                                                                                                  |
+| `sub_control` stops publishing, or `sub_low` or the USB link dies               | The board's own watchdog stops every thruster after 0.5 s without a command (in the simulator `sim_thrusters` does, after its `command_timeout`); `sub_low` reopens the port when it can, stopping the thrusters first                                                                                                                                    |
+| `sub_control`'s commands arrive late                                            | `sub_low` (in the simulator `sim_thrusters`) ignores a command older than its `command_timeout` (0.5 s), so the board's watchdog stops the thrusters if no fresh one follows                                                                                                                                                                              |
+| The board's main loop stalls                                                    | Its hardware watchdog resets it after 1 s, which stops the thruster PWM. After any board reset it stays killed until the kill switch is cycled                                                                                                                                                                                                            |
+| Thruster fails                                                                  | See [Thruster failure](#thruster-failure)                                                                                                                                                                                                                                                                                                                 |
 
 Every age above is by the message's own stamp, not its arrival, so a stream that still arrives but late (a lagging EKF, a backed-up DDS queue) counts as stale, and so does a DVL whose clock chrony is not syncing: a stamp more than 0.25 s ahead of the clock is not believed. The board side is in [maritime's README](https://github.com/avbotz/maritime#commands).
 
@@ -231,25 +231,25 @@ The `gains` launch argument picks one of two profiles at startup:
 - `src/sub_bringup/config/control/gains.yaml`: hardware
 - `src/sub_bringup/config/control/gains_sim.yaml`: simulation, with the Stonefish model's identified parameters
 
-| Parameter | Meaning |
-| --- | --- |
-| `control_rate_hz` | Control loop rate (50) |
-| `power_limit` | Normalized thrust cap in [0, 0.6] (`MAX_POWER_LIMIT`, 1260-1740 µs to the ESCs; `sub_low` and the firmware enforce it too) |
-| `model.*` | [Vehicle model](#vehicle-model) |
-| `feedforward.{acceleration,drag,restoring}` | Scale of each feedforward term, 0 to 1 |
-| `trajectory.{horizontal,vertical,roll,pitch,yaw}` | `[max velocity, max acceleration, max jerk]` |
-| `trajectory.{translation,rotation}_leash` | How far the reference may get ahead of the vehicle [m, rad] |
-| `gains.{x,y,z,roll,pitch,yaw}` | `[kp, ki, kd]` in accelerations |
-| `gains.integral_limit` | Integrator clamp \[m/s², rad/s²\]: x/y/z on the odom-axis integrators, roll/pitch/yaw on the body-axis ones |
-| `gains.anti_windup` | Rate integrators shed unproduced command [1/s] |
-| `observer.bandwidth` | Disturbance observer per axis [rad/s], below `control_rate_hz`; 0 off |
-| `allocation.axis_weights` | Priorities when the wrench is out of reach |
-| `allocation.max_command_rate` | Slew limit on each normalized command [1/s] |
-| `allocation.thruster_{positions,directions,reversed}` | Thruster layout, from the vehicle description (read-only) |
-| `thruster_health`, `failed_thrusters` | [Thruster failure](#thruster-failure) |
-| `safety.require_kill_cycle` | Arm only after the kill switch has been engaged since startup (true) |
+| Parameter                                                        | Meaning                                                                                                                                                   |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `control_rate_hz`                                                | Control loop rate (50)                                                                                                                                    |
+| `power_limit`                                                    | Normalized thrust cap in [0, 0.6] (`MAX_POWER_LIMIT`, 1260-1740 µs to the ESCs; `sub_low` and the firmware enforce it too)                                |
+| `model.*`                                                        | [Vehicle model](#vehicle-model)                                                                                                                           |
+| `feedforward.{acceleration,drag,restoring}`                      | Scale of each feedforward term, 0 to 1                                                                                                                    |
+| `trajectory.{horizontal,vertical,roll,pitch,yaw}`                | `[max velocity, max acceleration, max jerk]`                                                                                                              |
+| `trajectory.{translation,rotation}_leash`                        | How far the reference may get ahead of the vehicle [m, rad]                                                                                               |
+| `gains.{x,y,z,roll,pitch,yaw}`                                   | `[kp, ki, kd]` in accelerations                                                                                                                           |
+| `gains.integral_limit`                                           | Integrator clamp \[m/s², rad/s²\]: x/y/z on the odom-axis integrators, roll/pitch/yaw on the body-axis ones                                               |
+| `gains.anti_windup`                                              | Rate integrators shed unproduced command [1/s]                                                                                                            |
+| `observer.bandwidth`                                             | Disturbance observer per axis [rad/s], below `control_rate_hz`; 0 off                                                                                     |
+| `allocation.axis_weights`                                        | Priorities when the wrench is out of reach                                                                                                                |
+| `allocation.max_command_rate`                                    | Slew limit on each normalized command [1/s]                                                                                                               |
+| `allocation.thruster_{positions,directions,reversed}`            | Thruster layout, from the vehicle description (read-only)                                                                                                 |
+| `thruster_health`, `failed_thrusters`                            | [Thruster failure](#thruster-failure)                                                                                                                     |
+| `safety.require_kill_cycle`                                      | Arm only after the kill switch has been engaged since startup (true)                                                                                      |
 | `safety.{state,imu,attitude,dvl,depth,altitude,cmd_vel}_timeout` | Watchdog timeouts [s], see [Safety](#safety); `imu_timeout` is when rate feedback falls back to the EKF's, `attitude_timeout` when the IMU counts as lost |
-| `robot_name` | Namespace prefix for frame ids |
+| `robot_name`                                                     | Namespace prefix for frame ids                                                                                                                            |
 
 Everything except the rate, the layout and `robot_name` can be changed at runtime with `ros2 param set`; changing gains or the model keeps the integrators and the disturbance estimate. Edit the YAML to make a change stick.
 

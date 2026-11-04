@@ -115,12 +115,12 @@ ros2 run sub_mission mission --ros-args -r __node:=sub_mission -r __ns:=/marlin_
 
 Use `restart` for diver resets: kill the sub, put it back at the start, release the kill switch, and the mission starts over. Use `mission` directly for bench tests, XML smoke tests and debugging, where an automatic restart would hide the failure.
 
-| Limitation | Detail |
-| --- | --- |
-| Restart granularity | Restarts the whole selected mission, not the current subtree |
-| State persistence | Blackboard values come from XML parameters/scripts each run; runtime BT state is discarded |
-| Stop behavior | Any kill, even one shorter than its 0.5 s poll, stops the run: `SIGINT` to the mission's process group, up to 3 s for the whole group to exit, then `SIGTERM` and `SIGKILL` if needed. Each child's exit status or signal is logged |
-| Parameter forwarding | `restart.cpp` forwards only the parameters above; a new mission parameter must be added there |
+| Limitation           | Detail                                                                                                                                                                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Restart granularity  | Restarts the whole selected mission, not the current subtree                                                                                                                                                                        |
+| State persistence    | Blackboard values come from XML parameters/scripts each run; runtime BT state is discarded                                                                                                                                          |
+| Stop behavior        | Any kill, even one shorter than its 0.5 s poll, stops the run: `SIGINT` to the mission's process group, up to 3 s for the whole group to exit, then `SIGTERM` and `SIGKILL` if needed. Each child's exit status or signal is logged |
+| Parameter forwarding | `restart.cpp` forwards only the parameters above; a new mission parameter must be added there                                                                                                                                       |
 
 ## Live monitoring (Groot2)
 
@@ -133,13 +133,13 @@ ros2 launch sub_bringup sim_launch.py mission:=pool_a groot_port:=0     # no liv
 ros2 run sub_mission mission --ros-args -r __ns:=/marlin_v3 -p mission:=pool_a -p groot_port:=5565
 ```
 
-| Behavior | Detail |
-| --- | --- |
-| When it is up | From when the tree loads, before the kill-switch release. Under `restart`, each run's process loads the tree at the release, so the view is down between runs: reconnect after each release |
-| End of a run | The view stays up 2 s after the tree finishes or a kill ends the run, showing where it ended, then the process exits. `SIGINT` and `SIGTERM` skip the wait, so under `restart` a kill takes the view down within its 0.5 s poll |
-| Port taken | `mission` logs a warning and runs without the view, e.g. when a leftover mission process holds the port. A `groot_port` above 65534 (the view needs the next port too) or below 0 is FATAL at startup |
-| Groot2 edition | The free edition monitors trees of up to 20 nodes. `prelim` (7), `pid_tuning` (10), `pool_test` (13), `vision_test` (3), `slalom_perception_hold_test` (3) and the single `hard_coded_*` tasks (4 to 9) fit; the `pool_*` missions have 277 nodes, `bins_test` 157, `gate_slalom_test` 64, `slalom_three_test` 49, `gate_test` 37, and `hard_coded_competition` 30. Larger trees, the blackboard view and breakpoints need Groot2 PRO |
-| Breakpoints (PRO) | A breakpoint pauses the tick, so the mission sees a kill or interrupt only once it is released (`sub_control` drops commands while killed regardless). Groot2Publisher releases every breakpoint after 5 s without contact from Groot2 |
+| Behavior          | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| When it is up     | From when the tree loads, before the kill-switch release. Under `restart`, each run's process loads the tree at the release, so the view is down between runs: reconnect after each release                                                                                                                                                                                                                                           |
+| End of a run      | The view stays up 2 s after the tree finishes or a kill ends the run, showing where it ended, then the process exits. `SIGINT` and `SIGTERM` skip the wait, so under `restart` a kill takes the view down within its 0.5 s poll                                                                                                                                                                                                       |
+| Port taken        | `mission` logs a warning and runs without the view, e.g. when a leftover mission process holds the port. A `groot_port` above 65534 (the view needs the next port too) or below 0 is FATAL at startup                                                                                                                                                                                                                                 |
+| Groot2 edition    | The free edition monitors trees of up to 20 nodes. `prelim` (7), `pid_tuning` (10), `pool_test` (13), `vision_test` (3), `slalom_perception_hold_test` (3) and the single `hard_coded_*` tasks (4 to 9) fit; the `pool_*` missions have 277 nodes, `bins_test` 157, `gate_slalom_test` 64, `slalom_three_test` 49, `gate_test` 37, and `hard_coded_competition` 30. Larger trees, the blackboard view and breakpoints need Groot2 PRO |
+| Breakpoints (PRO) | A breakpoint pauses the tick, so the mission sees a kill or interrupt only once it is released (`sub_control` drops commands while killed regardless). Groot2Publisher releases every breakpoint after 5 s without contact from Groot2                                                                                                                                                                                                |
 
 Groot2 is not in the pixi environment: download it from [behaviortree.dev](https://www.behaviortree.dev/groot/). It shows the tree `mission` is running, not `Project.btproj`.
 
@@ -149,45 +149,45 @@ XML holds mission logic: ordering, fallbacks and retries, pool-specific branches
 
 ### Movement nodes
 
-| BT node | Behavior |
-| --- | --- |
-| `PosSetpoint` | Position or depth target; waits until it is reached ([Completion semantics](#completion-semantics)) |
-| `VelocitySetpoint` | Linear velocity along the heading; unset axes keep holding |
-| `AltitudeSetpoint` | DVL altitude target; waits until it is reached |
-| `AttSetpoint` | Attitude target; waits until it is reached |
-| `AngularVelocitySetpoint` | Angular velocity; unset axes keep holding |
-| `MoveRelative` | Move forward/left/up relative to the commanded heading |
-| `MoveRelativePos` | Move along odom's x, y and z, whatever the heading |
-| `NavigateToTransform` | Move so one vehicle frame takes another's position, e.g. the dropper onto where the down camera is ([Transform navigation](#transform-navigation)) |
-| `TimedVelocity` | Linear velocity along the heading for a fixed time, then hold |
-| `AddAttSetpoint` | Relative roll/pitch/yaw target |
-| `Spin` | Turn through a yaw distance at a set rate, braking into the final heading |
-| `Stop` | HOLD x, y, z and yaw where they come to rest, ending any velocity or spin still running |
-| `SavePose` | Write the x, y and/or yaw targets to the blackboard (gate home, a task's entry heading) |
-| `WaitUntilHit` | Wait for velocity feedback to drop after a velocity command |
-| `SweepAngle` | Sweep yaw (ahead, 40° and 80° right, 80° and 40° left, ahead). At the first heading where `attempts` front-camera frames see the target, write their average yaw toward it (each from the heading it was seen on) to `yaw`. `side` limits it to a target on one side of `reference_yaw` |
-| `SearchForDetection` | Move at a fixed velocity, holding the heading, until a detection; or sweep left, then right |
-| `AlignToDetection` | Turn (and optionally change depth) until a front-camera detection's bearing is within `tolerance` |
-| `ForwardContinuousAlign` | Move forward at a fixed velocity, steering toward a front-camera detection, until it is close, lost or passed, or `max_dist` or `timeout_msec` runs out |
-| `ForwardFixedTransit` | Move forward at a fixed velocity through something ranged before (the gate, a slalom opening), by odometry |
-| `LateralAlignToDetection` | Center a front-camera detection by moving sideways (and in z), keeping the heading; locks one odom target, moves at a fixed speed, or steps |
-| `SelectGateRole` | Set the role from the gate's left opening |
-| `SquareUpToGate` | Line up `standoff` in front of the gate's left opening, on its normal and facing through it, however the gate is turned ([Squaring up to the gate](#squaring-up-to-the-gate)) |
-| `OrientToDetectionAtDist` | Square up to an object's face (`heading_yaw_deg`) at a set distance, looking at its center |
-| `OctagonSurfaceSweep` | Turn in steps until an image to surface at is in view, then rise |
-| `DownForwardAlign`, `DownForwardSweepAlign` | Move forward while centering a down-camera detection; the sweep zigzags along a track until it sees one |
-| `DownSweepAlign` | Search sideways over the down camera, right of the start and then left |
-| `DownAlignToDetection`, `DownContinuousAlign` | Center a down-camera detection, optionally hold distance/depth, and yaw to orientation metadata (the second name is an alias) |
+| BT node                                       | Behavior                                                                                                                                                                                                                                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PosSetpoint`                                 | Position or depth target; waits until it is reached ([Completion semantics](#completion-semantics))                                                                                                                                                                                     |
+| `VelocitySetpoint`                            | Linear velocity along the heading; unset axes keep holding                                                                                                                                                                                                                              |
+| `AltitudeSetpoint`                            | DVL altitude target; waits until it is reached                                                                                                                                                                                                                                          |
+| `AttSetpoint`                                 | Attitude target; waits until it is reached                                                                                                                                                                                                                                              |
+| `AngularVelocitySetpoint`                     | Angular velocity; unset axes keep holding                                                                                                                                                                                                                                               |
+| `MoveRelative`                                | Move forward/left/up relative to the commanded heading                                                                                                                                                                                                                                  |
+| `MoveRelativePos`                             | Move along odom's x, y and z, whatever the heading                                                                                                                                                                                                                                      |
+| `NavigateToTransform`                         | Move so one vehicle frame takes another's position, e.g. the dropper onto where the down camera is ([Transform navigation](#transform-navigation))                                                                                                                                      |
+| `TimedVelocity`                               | Linear velocity along the heading for a fixed time, then hold                                                                                                                                                                                                                           |
+| `AddAttSetpoint`                              | Relative roll/pitch/yaw target                                                                                                                                                                                                                                                          |
+| `Spin`                                        | Turn through a yaw distance at a set rate, braking into the final heading                                                                                                                                                                                                               |
+| `Stop`                                        | HOLD x, y, z and yaw where they come to rest, ending any velocity or spin still running                                                                                                                                                                                                 |
+| `SavePose`                                    | Write the x, y and/or yaw targets to the blackboard (gate home, a task's entry heading)                                                                                                                                                                                                 |
+| `WaitUntilHit`                                | Wait for velocity feedback to drop after a velocity command                                                                                                                                                                                                                             |
+| `SweepAngle`                                  | Sweep yaw (ahead, 40° and 80° right, 80° and 40° left, ahead). At the first heading where `attempts` front-camera frames see the target, write their average yaw toward it (each from the heading it was seen on) to `yaw`. `side` limits it to a target on one side of `reference_yaw` |
+| `SearchForDetection`                          | Move at a fixed velocity, holding the heading, until a detection; or sweep left, then right                                                                                                                                                                                             |
+| `AlignToDetection`                            | Turn (and optionally change depth) until a front-camera detection's bearing is within `tolerance`                                                                                                                                                                                       |
+| `ForwardContinuousAlign`                      | Move forward at a fixed velocity, steering toward a front-camera detection, until it is close, lost or passed, or `max_dist` or `timeout_msec` runs out                                                                                                                                 |
+| `ForwardFixedTransit`                         | Move forward at a fixed velocity through something ranged before (the gate, a slalom opening), by odometry                                                                                                                                                                              |
+| `LateralAlignToDetection`                     | Center a front-camera detection by moving sideways (and in z), keeping the heading; locks one odom target, moves at a fixed speed, or steps                                                                                                                                             |
+| `SelectGateRole`                              | Set the role from the gate's left opening                                                                                                                                                                                                                                               |
+| `SquareUpToGate`                              | Line up `standoff` in front of the gate's left opening, on its normal and facing through it, however the gate is turned ([Squaring up to the gate](#squaring-up-to-the-gate))                                                                                                           |
+| `OrientToDetectionAtDist`                     | Square up to an object's face (`heading_yaw_deg`) at a set distance, looking at its center                                                                                                                                                                                              |
+| `OctagonSurfaceSweep`                         | Turn in steps until an image to surface at is in view, then rise                                                                                                                                                                                                                        |
+| `DownForwardAlign`, `DownForwardSweepAlign`   | Move forward while centering a down-camera detection; the sweep zigzags along a track until it sees one                                                                                                                                                                                 |
+| `DownSweepAlign`                              | Search sideways over the down camera, right of the start and then left                                                                                                                                                                                                                  |
+| `DownAlignToDetection`, `DownContinuousAlign` | Center a down-camera detection, optionally hold distance/depth, and yaw to orientation metadata (the second name is an alias)                                                                                                                                                           |
 
 ### Vision nodes
 
 The nodes that read detections without moving:
 
-| BT node | Kind | Behavior |
-| --- | --- | --- |
-| `LoadModel` | action | Asks the camera's `sub_vision` node to activate a task's detector (async `load_model` service call; no-op if already active) |
-| `DetectionVisible` | condition | `SUCCESS` iff a matching detection newer than `max_age_msec` exists |
-| `WaitForDetection` | action | Waits up to `timeout_msec` for a matching detection that arrived **after the node started**, so a stale frame cannot satisfy it |
+| BT node            | Kind      | Behavior                                                                                                                        |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `LoadModel`        | action    | Asks the camera's `sub_vision` node to activate a task's detector (async `load_model` service call; no-op if already active)    |
+| `DetectionVisible` | condition | `SUCCESS` iff a matching detection newer than `max_age_msec` exists                                                             |
+| `WaitForDetection` | action    | Waits up to `timeout_msec` for a matching detection that arrived **after the node started**, so a stale frame cannot satisfy it |
 
 Only `LoadModel` loads a model, so a tree calls it before the search or align that needs it, which also keeps the active model visible in the tree. It passes the task name (`task="gate"`) to `sub_vision` unchanged.
 
@@ -203,11 +203,11 @@ Vision alignment never steers above z = −0.5 (`MAX_VISION_Z` in `vision.cpp`),
 
 `trees/search.xml` composes the searches the tasks share from these nodes. Trees run them as SubTrees, e.g. `<SubTree ID="SweepCheck" task="octagon_table" class_id="" min_score="0.6"/>`:
 
-| SubTree | Behavior |
-| --- | --- |
-| `SweepCheck` | `SweepAngle`, then `AttSetpoint` to the yaw it found |
-| `ForwardSweepAlign` | `SweepAngle` up to `num_sweeps` times with a `forward_step` `MoveRelative` between sweeps (none after the last), then `AttSetpoint` to the yaw found. A forward move that does not arrive ends it with `FAILURE`; a sweep cut short by a yaw step that does not arrive counts as one that saw nothing |
-| `DownPatternScan` | `WaitForDetection` on the down camera at the start and at five points around it, (forward, left) of the start in `movement_dist`: (−1, −1), (0, 2), (2, 0), (0, −2), (−1, 1). Each point is a `MoveRelative` from the one before, along the heading the scan started on; a move that does not arrive samples where it got to. `SUCCESS` where a frame shows the target, else back to the start (`SavePose`, `PosSetpoint`) and `FAILURE` |
+| SubTree             | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SweepCheck`        | `SweepAngle`, then `AttSetpoint` to the yaw it found                                                                                                                                                                                                                                                                                                                                                                                     |
+| `ForwardSweepAlign` | `SweepAngle` up to `num_sweeps` times with a `forward_step` `MoveRelative` between sweeps (none after the last), then `AttSetpoint` to the yaw found. A forward move that does not arrive ends it with `FAILURE`; a sweep cut short by a yaw step that does not arrive counts as one that saw nothing                                                                                                                                    |
+| `DownPatternScan`   | `WaitForDetection` on the down camera at the start and at five points around it, (forward, left) of the start in `movement_dist`: (−1, −1), (0, 2), (2, 0), (0, −2), (−1, 1). Each point is a `MoveRelative` from the one before, along the heading the scan started on; a move that does not arrive samples where it got to. `SUCCESS` where a frame shows the target, else back to the start (`SavePose`, `PosSetpoint`) and `FAILURE` |
 
 An omitted setting takes the default from the file's `TreeNodesModel`, which BT.CPP applies to SubTrees and Groot2 displays. `task` and `class_id` have no default, so a SubTree without them fails to load; `class_id=""` takes any class.
 
@@ -253,13 +253,13 @@ When editing in Groot2, keep the `TreeNodesModel`s of `Project.btproj`, `resourc
 
 The mission commands `sub_control`, never the low-level board:
 
-| Topic | Type | Use |
-| --- | --- | --- |
-| `motion_setpoint` | `sub_control_interfaces/MotionSetpoint` | Every movement command: a mode per axis (position, velocity, hold) and its target, with a fresh `id` each |
-| `control/error` | `sub_control_interfaces/Error` | Position, velocity, attitude, and angular-rate tracking error, and the id of the last command `sub_control` took up |
-| `odometry/filtered` | `nav_msgs/Odometry` | The measured pose, where vision alignment, and relative moves on an axis without a target, start from |
-| `kill_switch` | `std_msgs/Bool` | Low-level kill state, published by `sub_low` (`sim_kill_switch` in simulation) |
-| `control/armed` | `std_msgs/Bool` | Latched by `sub_control`: the run starts only once it is armed |
+| Topic               | Type                                    | Use                                                                                                                 |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `motion_setpoint`   | `sub_control_interfaces/MotionSetpoint` | Every movement command: a mode per axis (position, velocity, hold) and its target, with a fresh `id` each           |
+| `control/error`     | `sub_control_interfaces/Error`          | Position, velocity, attitude, and angular-rate tracking error, and the id of the last command `sub_control` took up |
+| `odometry/filtered` | `nav_msgs/Odometry`                     | The measured pose, where vision alignment, and relative moves on an axis without a target, start from               |
+| `kill_switch`       | `std_msgs/Bool`                         | Low-level kill state, published by `sub_low` (`sim_kill_switch` in simulation)                                      |
+| `control/armed`     | `std_msgs/Bool`                         | Latched by `sub_control`: the run starts only once it is armed                                                      |
 
 `SetpointPublisher` (`commands.hpp`) gives each command its `id`. `MissionNode` counts a `control/error` as an update (`control_error_updates`) only when it carries the last command's id and `sub_control` did not reject it: an earlier error is about the previous command, and would read as arrival. A rejected command is logged and its move times out. Mission velocities have no timeout: they last until replaced, and `MissionNode` sends a stop when the run ends ([Control system](/thalassic/control/#command-interface)).
 
@@ -267,16 +267,16 @@ The mission commands `sub_control`, never the low-level board:
 
 The mission uses `sub_control`'s frames (REP-103) everywhere (C++, trees, ports and blackboard entries) with no conversion: `commands.hpp` copies targets into `MotionSetpoint` unchanged, and `odometry/filtered` and `control/error` are used as they arrive.
 
-| Values | Frame |
-| --- | --- |
-| Positions: `PosSetpoint`, `SavePose`, `Transit`'s `z`, `OctagonSurfaceSweep`'s `surface_z` | `odom`, ENU. x and y are zero where the kill switch was released, x along the heading there; z is up, so 1 m deep is `z="-1.0"` |
-| Yaws: `AttSetpoint`, `SavePose`, `SweepAngle`, the pool headings | `odom`, counter-clockwise from the heading at the release |
-| Relative moves and rates: `MoveRelative`, `VelocitySetpoint`, `TimedVelocity`, `SearchForDetection`, `LateralAlignToDetection`'s target offsets, `AddAttSetpoint`, `AngularVelocitySetpoint`, `Spin`, `OctagonSurfaceSweep` | Body FLU along the heading: x forward, y left, z up; a positive yaw turns left |
-| `MoveRelativePos` | odom's axes |
-| `AltitudeSetpoint`'s `z` | Height above the bottom |
-| Roll and pitch | FLU: positive roll lowers the right side, positive pitch the nose |
-| `sub_vision` bearings | Camera-optical, positive right of / below the image center; `vision.cpp` converts them where it steers on them |
-| `sub_vision` yaw metadata (`yaw_deg`, `heading_yaw_deg`) | Counter-clockwise from the heading, used as is |
+| Values                                                                                                                                                                                                                      | Frame                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Positions: `PosSetpoint`, `SavePose`, `Transit`'s `z`, `OctagonSurfaceSweep`'s `surface_z`                                                                                                                                  | `odom`, ENU. x and y are zero where the kill switch was released, x along the heading there; z is up, so 1 m deep is `z="-1.0"` |
+| Yaws: `AttSetpoint`, `SavePose`, `SweepAngle`, the pool headings                                                                                                                                                            | `odom`, counter-clockwise from the heading at the release                                                                       |
+| Relative moves and rates: `MoveRelative`, `VelocitySetpoint`, `TimedVelocity`, `SearchForDetection`, `LateralAlignToDetection`'s target offsets, `AddAttSetpoint`, `AngularVelocitySetpoint`, `Spin`, `OctagonSurfaceSweep` | Body FLU along the heading: x forward, y left, z up; a positive yaw turns left                                                  |
+| `MoveRelativePos`                                                                                                                                                                                                           | odom's axes                                                                                                                     |
+| `AltitudeSetpoint`'s `z`                                                                                                                                                                                                    | Height above the bottom                                                                                                         |
+| Roll and pitch                                                                                                                                                                                                              | FLU: positive roll lowers the right side, positive pitch the nose                                                               |
+| `sub_vision` bearings                                                                                                                                                                                                       | Camera-optical, positive right of / below the image center; `vision.cpp` converts them where it steers on them                  |
+| `sub_vision` yaw metadata (`yaw_deg`, `heading_yaw_deg`)                                                                                                                                                                    | Counter-clockwise from the heading, used as is                                                                                  |
 
 Ports named for depth (`AlignToDetection`'s `depth`, `depth_gain` and `max_depth_step`, `LateralAlignToDetection`'s `align_depth` and `max_depth_step`) are flags or gains, never signed values: every vertical value is a z.
 

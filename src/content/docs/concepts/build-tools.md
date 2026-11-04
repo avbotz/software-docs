@@ -3,37 +3,27 @@ title: Build tools
 description: What pixi, colcon, CMake, setuptools and git submodules do, what each folder is for, and when you need to rebuild.
 ---
 
-## The short version
+## [Pixi](https://pixi.sh/)
 
-| Tool | Its job | You use it as |
-| --- | --- | --- |
-| **pixi** | Installs everything the code needs: ROS 2, compilers, libraries | `pixi run ...`, `pixi shell` |
-| **colcon** | Builds our ROS 2 packages | `pixi run build` |
-| **CMake** | Compiles a C++ package, for colcon | Editing `CMakeLists.txt` |
-| **setuptools** | Installs a Python package, for colcon | Editing `setup.py` |
-| **git submodules** | Pull other repositories into ours | `git submodule update --init --recursive` |
+To run, our codebase requires ROS 2, a C++ compiler, Python, and various other packages in versions that are compatible with each other. We use Pixi as our package manager to ensure that the exact same versions of packages are installed on every computer. To achieve this reproducibility, Pixi uses two files:
 
-## pixi: installs everything
+- **`pixi.toml`** lists the versions of packages we directly use (e.g. "ROS 2 Jazzy" or "OpenCV 4"). This file can be manually edited (or modified with commands like `pixi add ...`).
+- **`pixi.lock`** records the _exact_ version of every package, for every environment. Pixi will automatically generate this file, so never edit it by hand.
 
-The code needs ROS 2, a C++ compiler, Python and over a hundred other packages, in versions that work together. [Pixi](https://pixi.sh) installs exactly the same versions on every computer, so no bug comes from one laptop's setup. Two files describe them:
-
-- **`pixi.toml`** lists what we want, such as "ROS 2 Jazzy" or "OpenCV 4". You edit this one.
-- **`pixi.lock`** records the _exact_ version of every package, for every computer type. Pixi generates it, so never edit it by hand.
-
-Everything is installed into `.pixi/` in the repository, not on your system, so it needs no `sudo`, can't conflict with anything else, and disappears if you delete the folder.
-
-There are two ways to use that environment:
+Pixi will install everything into a project specific environment. To use the environment:
 
 ```bash
 pixi run build      # run one command inside it
 pixi shell          # open a shell inside it, for many commands
 ```
 
-That's why `ros2` works after `pixi shell`, but gives `command not found` in a plain terminal.
-
 The `[tasks]` section of `pixi.toml` defines shortcuts like `build` and `up`. `pixi task list` lists them all.
 
-There are two environments. `default` is for laptops, and `jetson` is for the robot, which leaves out the simulator and has GPU support. On the robot every command names it: `pixi run -e jetson build`.
+To use tools installed in the Pixi environment (like `ros2`), you must activate the environment or use one of the tasks.
+
+Different environments can be . `default` is for laptops, and `jetson` is for the robot, which leaves out the simulator and has GPU support.
+
+When running commands on the jetson, you must explicitly indicate that you want to use the jetson environment (`pixi run -e jetson build`).
 
 ### Adding a dependency
 
@@ -41,9 +31,9 @@ There are two environments. `default` is for laptops, and `jetson` is for the ro
 pixi add ros-jazzy-some-package
 ```
 
-That updates both files, and you commit both. The package that uses it also has to list it: see [package.xml](#packagexml-what-a-package-needs).
+Regarding why we chose Pixi instead of apt, pip, or some other dependency management tool, please refer to [Decisions](/thalassic/decisions/#1-pixi--robostack-instead-of-apt-ros-rosdep-and-a-venv).
 
-## colcon: builds the packages
+## colcon
 
 ROS 2 code is split into **packages** that depend on each other: `sub_control` needs the message types from `sub_control_interfaces`, so that builds first. **colcon** works out the order and builds each one.
 
@@ -76,28 +66,27 @@ pixi run build --packages-select sub_control  # build just this package
 
 These work with `pixi run build`, and with `pixi run colcon list` to see what they would build:
 
-| Option | What it does |
-| --- | --- |
-| `--packages-select <package>` | Only that package |
-| `--packages-up-to <package>` | That package and everything it needs |
-| `--packages-above <package>` | That package and everything that needs it. Use it after changing a message |
+| Option                             | What it does                                                         |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `--packages-select <package>`      | Only that package                                                    |
+| `--packages-up-to <package>`       | That package and everything it needs                                 |
+| `--packages-above <package>`       | That package and everything that needs it                            |
 | `--event-handlers console_direct+` | Shows everything that CMake and the compiler print, as they print it |
 
 `colcon_defaults.yaml` holds the options used on every build, and `colcon.meta` the options for individual packages, mostly the submodules whose files we can't change. [Workspace layout](/thalassic/setup/#workspace-layout) lists the other files.
 
 ### When do I need to rebuild?
 
-We build with `--symlink-install`: `install/` _links_ to many source files instead of copying them, so most files that aren't compiled take effect without a rebuild.
+We build with `--symlink-install`, so `install/` _links_ to many source files instead of copying them using [symlinks](https://en.wikipedia.org/wiki/Symbolic_link). Therefore, most files that aren't compiled take effect without a rebuild.
 
-| You changed... | What you need to do |
-| --- | --- |
-| A Python file | Restart the program |
-| A mission or tree XML file | Run the mission again |
-| A YAML settings file or a launch file | Restart the stack |
-| **A C++ file** | `pixi run build --packages-select <package>`, then restart |
-| **A new file** of any kind | Build that package, to create its link |
-| **A `.msg` or `.srv` file** | Build that package and those that use it. If in doubt, run `pixi run build` |
-| **`pixi.toml`** | Commit `pixi.lock` too. Pixi updates the environment the next time you run something |
+| You changed...                        | What you need to do                                                         |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| A Python file                         | No rebuild needed                                                           |
+| A mission or tree XML file            | No rebuild needed                                                           |
+| A YAML settings file or a launch file | No rebuild needed                                                           |
+| **A C++ file**                        | Build needed of at least that package                                       |
+| **A new file** of any kind            | Build needed of at least that package                                       |
+| **A `.msg` or `.srv` file**           | Build that package and those that use it. If in doubt, run `pixi run build` |
 
 If a change seems to have no effect, check first whether it needed a rebuild.
 
@@ -139,7 +128,7 @@ CMake and setuptools are the standard build tools for C++ and Python, not ROS to
 
 ### package.xml: what a package needs
 
-Every package has a `package.xml`, and most of it lists what the package depends on. From `sub_control`'s:
+Every package has a `package.xml`, which contains metadata about package. Most importantly, it contains a list of other packages upon which the package depends. From `sub_control`'s:
 
 ```xml
 <depend>rclcpp</depend>
@@ -149,12 +138,12 @@ Every package has a `package.xml`, and most of it lists what the package depends
 <test_depend>ament_cmake_gtest</test_depend>
 ```
 
-| Tag                  | Needed for                                |
-| -------------------- | ----------------------------------------- |
-| `<depend>`           | Building it and running it. The usual one |
-| `<buildtool_depend>` | The build tool itself                     |
-| `<exec_depend>`      | Only running it                           |
-| `<test_depend>`      | Only its tests                            |
+| Tag                  | Needed for                  |
+| -------------------- | --------------------------- |
+| `<depend>`           | Building it and running it. |
+| `<buildtool_depend>` | The build tool itself       |
+| `<exec_depend>`      | Only running it             |
+| `<test_depend>`      | Only its tests              |
 
 colcon reads these to work out the order. `sub_mission` uses the message types from all three `_interfaces` packages, so they are built first:
 
@@ -168,11 +157,11 @@ sub_mission
 
 `package.xml` only says what's needed; pixi installs it. So a new dependency from outside the repository goes in more than one place:
 
-| File | What it's for | Python package | C++ package |
-| --- | --- | --- | --- |
-| `pixi.toml`, with `pixi add` | Installing it | ✓ | ✓ |
-| `package.xml` | Telling colcon and ROS that it's needed | ✓ | ✓ |
-| `CMakeLists.txt` | Telling the compiler where to find it |  | ✓ |
+| File                         | What it's for                           | Python package | C++ package |
+| ---------------------------- | --------------------------------------- | -------------- | ----------- |
+| `pixi.toml`, with `pixi add` | Installing it                           | ✓              | ✓           |
+| `package.xml`                | Telling colcon and ROS that it's needed | ✓              | ✓           |
+| `CMakeLists.txt`             | Telling the compiler where to find it   |                | ✓           |
 
 In `pixi.toml`, a ROS package's name starts with `ros-jazzy-` and uses dashes, so `vision_msgs` is `ros-jazzy-vision-msgs`. A dependency on another of our own packages doesn't go in `pixi.toml`, since colcon builds it.
 
@@ -214,8 +203,6 @@ ament_package()                       # always the last line
 - **`find_package`** finds a dependency, and **`ament_target_dependencies`** or **`target_link_libraries`** let a target use it. Forget either and the build fails, usually because the compiler can't find a header file, or with `undefined reference` when the program is linked.
 - **`install`** copies or links what was built in `build/` into `install/`, the only folder used to run. Leave it out and `ros2 run` says `No executable found`.
 - **`ament_package()`** registers the package so other packages can `find_package` it.
-
-`colcon_defaults.yaml` passes two settings to CMake on every build. `CMAKE_BUILD_TYPE=RelWithDebInfo` compiles with optimizations but keeps the information a debugger needs. `CMAKE_EXPORT_COMPILE_COMMANDS` writes `compile_commands.json`, how each file is compiled, which your editor uses to understand the C++ ([Editors](/thalassic/setup/#editors)).
 
 #### Message packages
 
@@ -297,12 +284,12 @@ setup(
 
 We build with `--merge-install`, so every package installs into the same `install/` folder:
 
-| What | Where in `install/` | What looks there |
-| --- | --- | --- |
-| Programs, both C++ and Python | `lib/<package>/` | `ros2 run` |
-| Python code, ours and that generated from messages | `lib/python3.12/site-packages/` | `import` |
-| Launch files, settings and `package.xml` | `share/<package>/` | `ros2 launch`, `get_package_share_directory()` |
-| C++ headers generated from messages | `include/` | The compiler, for other packages |
+| What                                               | Where in `install/`             | What looks there                               |
+| -------------------------------------------------- | ------------------------------- | ---------------------------------------------- |
+| Programs, both C++ and Python                      | `lib/<package>/`                | `ros2 run`                                     |
+| Python code, ours and that generated from messages | `lib/python3.12/site-packages/` | `import`                                       |
+| Launch files, settings and `package.xml`           | `share/<package>/`              | `ros2 launch`, `get_package_share_directory()` |
+| C++ headers generated from messages                | `include/`                      | The compiler, for other packages               |
 
 `--symlink-install` makes many of these into links. In `install/lib/sub_control/`, the Python script links back to `src/`, so an edit to it takes effect straight away, while the C++ program links to `build/`, which only changes when you compile:
 
@@ -360,13 +347,13 @@ pixi run colcon test-result --test-result-base build/sub_mission --verbose
 
 ## Other names you'll see
 
-| Name | What it is |
-| --- | --- |
-| **rosdep** | ROS's usual way to install what `package.xml` lists. pixi does that for us, so skip any step that runs it. [Why](/thalassic/decisions/#1-pixi--robostack-instead-of-apt-ros-rosdep-and-a-venv) |
-| **ament_vendor** | Builds a library that isn't a ROS package as if it were one. `stonefish_vendor` uses it to build the simulator. [More](/thalassic/decisions/#2-stonefish-is-built-inside-the-workspace) |
-| **generate_parameter_library** | Generates the C++ that declares `sub_control`'s parameters, from `src/sub_control_parameters.yaml` |
-| **gtest, pytest** | The test frameworks for C++ and Python. `colcon test` runs both |
-| **DDS** | What ROS 2 uses to find nodes and send messages, seen in some errors. `ROS_AUTOMATIC_DISCOVERY_RANGE` in `pixi.toml` limits it to your own computer, so two people on the same Wi-Fi don't see each other's simulators. If nodes stop finding each other after a crash, `pixi run reset` clears what was left behind. [DDS discovery](/thalassic/setup/#dds-discovery) |
+| Name                           | What it is                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **rosdep**                     | ROS's usual way to install what `package.xml` lists. pixi does that for us, so skip any step that runs it. [Why](/thalassic/decisions/#1-pixi--robostack-instead-of-apt-ros-rosdep-and-a-venv)                                                                                                                                                                         |
+| **ament_vendor**               | Builds a library that isn't a ROS package as if it were one. `stonefish_vendor` uses it to build the simulator. [More](/thalassic/decisions/#2-stonefish-is-built-inside-the-workspace)                                                                                                                                                                                |
+| **generate_parameter_library** | Generates the C++ that declares `sub_control`'s parameters, from `src/sub_control_parameters.yaml`                                                                                                                                                                                                                                                                     |
+| **gtest, pytest**              | The test frameworks for C++ and Python. `colcon test` runs both                                                                                                                                                                                                                                                                                                        |
+| **DDS**                        | What ROS 2 uses to find nodes and send messages, seen in some errors. `ROS_AUTOMATIC_DISCOVERY_RANGE` in `pixi.toml` limits it to your own computer, so two people on the same Wi-Fi don't see each other's simulators. If nodes stop finding each other after a crash, `pixi run reset` clears what was left behind. [DDS discovery](/thalassic/setup/#dds-discovery) |
 
 ## Learn more
 

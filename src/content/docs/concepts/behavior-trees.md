@@ -28,10 +28,10 @@ About every 50 ms the tree gets a **tick**, which starts at the root and works i
 
 **Control nodes** have children, and decide which to run:
 
-| Node | Rule | It's like |
-| --- | --- | --- |
-| `Sequence` | Runs its children in order. **Stops at the first failure.** Succeeds if they all do | "Do this, _and_ this, _and_ this" |
-| `Fallback` | Tries its children in order. **Stops at the first success.** Fails if they all do | "Try this, _or else_ this, _or else_ this" |
+| Node       | Rule                                                                                | It's like                                  |
+| ---------- | ----------------------------------------------------------------------------------- | ------------------------------------------ |
+| `Sequence` | Runs its children in order. **Stops at the first failure.** Succeeds if they all do | "Do this, _and_ this, _and_ this"          |
+| `Fallback` | Tries its children in order. **Stops at the first success.** Fails if they all do   | "Try this, _or else_ this, _or else_ this" |
 
 **Decorators** have one child, and change how it behaves:
 

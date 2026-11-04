@@ -30,14 +30,14 @@ CI runs `check` and `build` on every pull request, so run `mise run fmt` before 
 
 The website is [Starlight](https://starlight.astro.build). A page is a Markdown file in `src/content/docs/`, and its path is its URL: `src/content/docs/thalassic/control.md` is `/thalassic/control/`.
 
-| Folder | What goes there |
-| --- | --- |
-| `start-here/` | The path for someone who has just joined, in order |
-| `tutorials/` | Exercises that end with something working |
-| `concepts/` | The ideas behind the code, explained from the start |
-| `help/` | Troubleshooting and the glossary |
-| `thalassic/` | The detailed reference for the [thalassic](https://github.com/avbotz/thalassic) repository |
-| `diagrams/` | The diagrams page |
+| Folder        | What goes there                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `start-here/` | The path for someone who has just joined, in order                                         |
+| `tutorials/`  | Exercises that end with something working                                                  |
+| `concepts/`   | The ideas behind the code, explained from the start                                        |
+| `help/`       | Troubleshooting and the glossary                                                           |
+| `thalassic/`  | The detailed reference for the [thalassic](https://github.com/avbotz/thalassic) repository |
+| `diagrams/`   | The diagrams page                                                                          |
 
 - A page starts with a `title` and a `description`, and the title is not repeated as a heading.
 - A new page also has to go in the `sidebar` in `astro.config.mjs`.

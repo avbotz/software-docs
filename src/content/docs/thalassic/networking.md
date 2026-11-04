@@ -7,12 +7,12 @@ The Jetson, the DVL, the GigE down camera and the router all connect to a switch
 
 ## Addresses
 
-| Device | Address | Set by |
-| --- | --- | --- |
-| Jetson AGX Orin | `192.168.5.245/24` | `deploy/jetson/files/60-thalassic-vehicle.yaml`, installed as a netplan file |
-| Water Linked DVL A50 | `192.168.5.250` | Configured on the DVL itself; the driver is pointed at it by `sub_bringup/config/vehicles/marlin_v3.yaml` |
-| FLIR Blackfly S (down camera) | `192.168.5.249` | Configured on the camera itself; the driver finds it by the serial number in `sub_bringup/config/vehicles/marlin_v3.yaml` |
-| Laptops and anything else temporary | DHCP, `192.168.5.10`–`192.168.5.100` | The router |
+| Device                              | Address                              | Set by                                                                                                                    |
+| ----------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Jetson AGX Orin                     | `192.168.5.245/24`                   | `deploy/jetson/files/60-thalassic-vehicle.yaml`, installed as a netplan file                                              |
+| Water Linked DVL A50                | `192.168.5.250`                      | Configured on the DVL itself; the driver is pointed at it by `sub_bringup/config/vehicles/marlin_v3.yaml`                 |
+| FLIR Blackfly S (down camera)       | `192.168.5.249`                      | Configured on the camera itself; the driver finds it by the serial number in `sub_bringup/config/vehicles/marlin_v3.yaml` |
+| Laptops and anything else temporary | DHCP, `192.168.5.10`–`192.168.5.100` | The router                                                                                                                |
 
 The netplan file gives the Jetson a default route through the router (`192.168.5.1`), which is not always on the network (autonomous runs, for one), and no nameservers. `end0` is `optional`, so boot does not wait for the link.
 

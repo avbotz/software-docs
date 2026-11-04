@@ -32,14 +32,14 @@ Create a file in it called `my_first_mission.xml`:
 </root>
 ```
 
-| Line | Meaning |
-| --- | --- |
-| `<root ... main_tree_to_execute="MyFirstMission">` | This file's main tree is the one called `MyFirstMission` |
-| `<Sequence>` | Do the steps inside, in order. Stop if one fails |
-| `<PosSetpoint z="-1.0"/>` | Go to a depth of 1 m. z is up, so underwater is negative. Wait until it gets there |
-| `<MoveRelative x="2.0"/>` | Swim 2 m forward. In `MoveRelative`, x is forward, y is left and z is up |
-| `<AddAttSetpoint yaw="1.57079633"/>` | Turn 90° to the left. Angles are in radians, so π/2 ≈ 1.5708 is 90° |
-| `<Sleep msec="3000"/>` | Wait for 3 seconds |
+| Line                                               | Meaning                                                                            |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `<root ... main_tree_to_execute="MyFirstMission">` | This file's main tree is the one called `MyFirstMission`                           |
+| `<Sequence>`                                       | Do the steps inside, in order. Stop if one fails                                   |
+| `<PosSetpoint z="-1.0"/>`                          | Go to a depth of 1 m. z is up, so underwater is negative. Wait until it gets there |
+| `<MoveRelative x="2.0"/>`                          | Swim 2 m forward. In `MoveRelative`, x is forward, y is left and z is up           |
+| `<AddAttSetpoint yaw="1.57079633"/>`               | Turn 90° to the left. Angles are in radians, so π/2 ≈ 1.5708 is 90°                |
+| `<Sleep msec="3000"/>`                             | Wait for 3 seconds                                                                 |
 
 [Coordinates](/concepts/coordinates/) explains x, y, z and radians.
 

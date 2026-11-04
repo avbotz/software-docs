@@ -128,12 +128,12 @@ class OctagonTablePostProcessor(TaskPostProcessor):
 
 That's the distance formula from above. Other post-processors do more:
 
-| Task | Its post-processor |
-| --- | --- |
-| `gate` | Works out which side of the gate is which, reads the icons on it to find its role, and estimates its angle |
-| `slalom` | Keeps only the nearest red pipe, and checks that it really is red |
-| `path_marker` | Works out which way a marker on the floor points, using OpenCV |
-| `torp` | Works out the board's exact position and angle (using a technique called PnP) and picks the hole to aim for |
+| Task          | Its post-processor                                                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `gate`        | Works out which side of the gate is which, reads the icons on it to find its role, and estimates its angle  |
+| `slalom`      | Keeps only the nearest red pipe, and checks that it really is red                                           |
+| `path_marker` | Works out which way a marker on the floor points, using OpenCV                                              |
+| `torp`        | Works out the board's exact position and angle (using a technique called PnP) and picks the hole to aim for |
 
 [Post-processors](/thalassic/vision/#post-processors) describes each one, and [Adding a new mission task](/thalassic/vision/#adding-a-new-mission-task) shows how to add your own.
 

@@ -93,13 +93,13 @@ Or, if you don't need the cameras, use `headless:=true`.
 
 These appear on normal runs:
 
-| Message | What it is |
-| --- | --- |
-| `Sub is killed, waiting...` | The mission waiting for the kill switch to release. This takes about 6 seconds |
-| `Texture has 1 channels while expected 3 channels!` | Harmless |
-| `No timestamp set for diagnostic message` | Harmless |
-| `dropped a frame`, while shutting down | Harmless |
-| `process has died [... exit code -6 ...]`, while shutting down | The simulator doesn't exit tidily |
+| Message                                                        | What it is                                                                     |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `Sub is killed, waiting...`                                    | The mission waiting for the kill switch to release. This takes about 6 seconds |
+| `Texture has 1 channels while expected 3 channels!`            | Harmless                                                                       |
+| `No timestamp set for diagnostic message`                      | Harmless                                                                       |
+| `dropped a frame`, while shutting down                         | Harmless                                                                       |
+| `process has died [... exit code -6 ...]`, while shutting down | The simulator doesn't exit tidily                                              |
 
 ### A run hangs or acts strangely after an earlier one
 

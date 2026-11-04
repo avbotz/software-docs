@@ -47,17 +47,17 @@ if __name__ == "__main__":
     main()
 ```
 
-| Code | What it does |
-| --- | --- |
-| `import rclpy` | The ROS 2 library for Python |
-| `from nav_msgs.msg import Odometry` | The message type of the topic. `ros2 topic info` tells you which one you need |
-| `class DepthWatcher(Node)` | Our node, built on ROS 2's `Node` class |
-| `super().__init__("depth_watcher")` | Names the node, as `ros2 node list` shows it |
+| Code                                                                                | What it does                                                                                                         |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `import rclpy`                                                                      | The ROS 2 library for Python                                                                                         |
+| `from nav_msgs.msg import Odometry`                                                 | The message type of the topic. `ros2 topic info` tells you which one you need                                        |
+| `class DepthWatcher(Node)`                                                          | Our node, built on ROS 2's `Node` class                                                                              |
+| `super().__init__("depth_watcher")`                                                 | Names the node, as `ros2 node list` shows it                                                                         |
 | `self.create_subscription(Odometry, ".../odometry/filtered", self.on_odometry, 10)` | "When a message arrives on this topic, call `on_odometry`." The `10` is how many messages to queue if we fall behind |
-| `self.create_timer(0.5, self.print_depth)` | "Call `print_depth` every 0.5 seconds" |
-| `msg.pose.pose.position.z` | The same field you read with `--field pose.pose.position.z` |
-| `-self.latest_z` | z is negative underwater, so we flip the sign to get depth |
-| `rclpy.spin(...)` | Runs the node until you stop it: it waits for messages and timers, and calls your functions |
+| `self.create_timer(0.5, self.print_depth)`                                          | "Call `print_depth` every 0.5 seconds"                                                                               |
+| `msg.pose.pose.position.z`                                                          | The same field you read with `--field pose.pose.position.z`                                                          |
+| `-self.latest_z`                                                                    | z is negative underwater, so we flip the sign to get depth                                                           |
+| `rclpy.spin(...)`                                                                   | Runs the node until you stop it: it waits for messages and timers, and calls your functions                          |
 
 You never call `on_odometry` yourself: ROS 2 calls it whenever a message arrives. This is a **callback**.
 
@@ -140,12 +140,12 @@ if __name__ == "__main__":
 
 The new pieces:
 
-| Code | What it does |
-| --- | --- |
-| `self.create_publisher(MotionSetpoint, ".../motion_setpoint", 10)` | Lets this node send messages on the topic |
-| `msg = MotionSetpoint()` | A new, empty message. Every mode starts at 0, which means `KEEP`: leave this axis alone |
-| `msg.mode[z] = MotionSetpoint.POSITION` | The named form of the `1` you typed by hand, defined in `MotionSetpoint.msg` |
-| `self.publisher.publish(msg)` | Sends it |
+| Code                                                               | What it does                                                                            |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `self.create_publisher(MotionSetpoint, ".../motion_setpoint", 10)` | Lets this node send messages on the topic                                               |
+| `msg = MotionSetpoint()`                                           | A new, empty message. Every mode starts at 0, which means `KEEP`: leave this axis alone |
+| `msg.mode[z] = MotionSetpoint.POSITION`                            | The named form of the `1` you typed by hand, defined in `MotionSetpoint.msg`            |
+| `self.publisher.publish(msg)`                                      | Sends it                                                                                |
 
 Run it the same way, with `depth_watcher` beside it to watch the depth. After 15 seconds:
 
