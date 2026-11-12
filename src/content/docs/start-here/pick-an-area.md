@@ -52,8 +52,8 @@ After the [tutorials](/tutorials/first-mission/), which touch most of these area
 **You make the software talk to the hardware:** the thruster board, sensors and cameras. You work with the real robot, and closely with the electrical team.
 
 - **Languages:** C++ for the drivers, and C on [Zephyr](https://zephyrproject.org/) for the firmware.
-- **Read:** [Architecture](/thalassic/architecture/), [Networking](/thalassic/networking/), and the [maritime](https://github.com/avbotz/maritime) README.
-- **Start with:** Read `sub_low.cpp`, and work out how a `control/thrusters` message becomes a line of text sent to the board.
+- **Read:** [Architecture](/thalassic/architecture/), [Networking](/thalassic/networking/), and the [maritime reference](/maritime/).
+- **Start with:** Read `sub_low.cpp`, and work out how a `control/thrusters` message becomes the bytes of a frame sent to the board.
 
 ## Tools and infrastructure
 

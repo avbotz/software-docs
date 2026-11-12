@@ -74,7 +74,7 @@ The vehicle's launch file sets `device: gpu`, so a GPU that cannot run a model f
 
 ### maritime
 
-The thruster board runs [maritime](https://github.com/avbotz/maritime). `sub_low` needs firmware with protocol 2: older firmware does not understand its `m` thruster lines and has no command watchdog. `/diagnostics_agg` shows the protocol the board reports under `sub_low: board`, which is an error for any other protocol, or for firmware that sends no heartbeat at all. Build and flash it as maritime's README says (`west build -b rpi_pico`, then `west flash -r uf2`, or copy `build/zephyr/zephyr.uf2` to the board in BOOTSEL mode).
+The thruster board runs [maritime](https://github.com/avbotz/maritime). `sub_low` needs firmware with protocol 3: older firmware speaks text, not [binary frames](/maritime/protocol/#protocol). `/diagnostics_agg` shows the protocol the board reports under `sub_low: board`, which is an error for any other protocol, or when no state arrives at all, as from older firmware. Build and flash it as [Setup and build](/maritime/setup/#flashing) says.
 
 ## Running
 

@@ -10,5 +10,6 @@ This site contains documentation on AVBotz's software stack and tooling.
 - [Your first contributions](/tutorials/first-mission/)
 - [Concepts](/concepts/coordinates/)
 - [Thalassic reference](/thalassic/)
+- [maritime reference](/maritime/)
 - [Diagrams](/diagrams/)
 - [Troubleshooting](/help/troubleshooting/)

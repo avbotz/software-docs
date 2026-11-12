@@ -60,7 +60,7 @@ pixi shell                # an interactive shell with ROS 2 and the workspace
 
 | Repository                                                                                                   | What it is                                                                                     |
 | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| [maritime](https://github.com/avbotz/maritime)                                                               | Firmware for the board that drives the thrusters                                               |
+| [maritime](https://github.com/avbotz/maritime)                                                               | Firmware for the board that drives the thrusters ([reference](/maritime/))                     |
 | [foxglove-extensions](https://github.com/avbotz/foxglove-extensions)                                         | The Foxglove panels for driving, tuning and vision                                             |
 | [remora](https://github.com/avbotz/remora)                                                                   | Turns bags into labelled datasets and trained models (private: ask a software lead for access) |
 | [stonefish](https://github.com/avbotz/stonefish), [stonefish_ros2](https://github.com/avbotz/stonefish_ros2) | Our forks of the simulator and its ROS 2 bridge                                                |

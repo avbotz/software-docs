@@ -37,6 +37,7 @@ The website is [Starlight](https://starlight.astro.build). A page is a Markdown 
 | `concepts/`   | The ideas behind the code, explained from the start                                        |
 | `help/`       | Troubleshooting and the glossary                                                           |
 | `thalassic/`  | The detailed reference for the [thalassic](https://github.com/avbotz/thalassic) repository |
+| `maritime/`   | The detailed reference for the [maritime](https://github.com/avbotz/maritime) firmware     |
 | `diagrams/`   | The diagrams page                                                                          |
 
 - A page starts with a `title` and a `description`, and the title is not repeated as a heading.

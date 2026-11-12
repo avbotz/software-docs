@@ -18,7 +18,7 @@ description: Every term you will run into in AVBotz's software, in plain English
 | **IMU**         | Inertial Measurement Unit. Measures rotation and acceleration. [More](/concepts/sensors/#imu-how-am-i-rotated)                        |
 | **Jetson**      | The NVIDIA Jetson AGX Orin, the robot's main computer                                                                                 |
 | **Kill switch** | A physical switch that stops the thrusters                                                                                            |
-| **maritime**    | Our [firmware](https://github.com/avbotz/maritime) for the thruster board                                                             |
+| **maritime**    | Our [firmware](/maritime/) for the thruster board                                                                                     |
 | **Marlin V3**   | Our current robot                                                                                                                     |
 | **MEB**         | The sealed box inside the robot that holds the electronics                                                                            |
 | **Pinger**      | A device that emits sound underwater, used at RoboSub to mark some tasks                                                              |

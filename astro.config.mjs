@@ -80,6 +80,17 @@ export default defineConfig({
             "thalassic/decisions",
           ],
         },
+        {
+          label: "maritime reference",
+          collapsed: true,
+          items: [
+            { label: "Overview", slug: "maritime" },
+            "maritime/setup",
+            "maritime/firmware",
+            "maritime/protocol",
+            "maritime/hardware",
+          ],
+        },
         { label: "Diagrams", link: "/diagrams/" },
       ],
     }),

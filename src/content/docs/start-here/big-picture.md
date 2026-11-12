@@ -63,7 +63,7 @@ So you can work on one piece without understanding the others: a mission says "g
 1. `sub_vision` finds the gate in the image with its neural network, and publishes the angle to it, say 0.2 radians right of center, on `vision/detections`.
 1. `sub_mission`, on the `AlignToDetection` step of its plan, reads the detection and publishes "turn 0.2 radians right" on `motion_setpoint`.
 1. `sub_control`, 50 times a second, compares that target with the robot's position from the EKF (`odometry/filtered`), works out the force needed, allocates it across the eight thrusters, and publishes their commands on `control/thrusters`.
-1. `sub_low` sends the commands to the thruster board as a line of text over USB.
+1. `sub_low` sends the commands to the thruster board as a few bytes over USB.
 1. The firmware on the board sends each thruster's speed controller a pulse, and the propellers spin.
 1. The robot turns. The IMU senses it, the EKF updates, the next frame shows the gate closer to center, and the loop repeats.
 
