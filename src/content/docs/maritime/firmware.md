@@ -29,7 +29,7 @@ Each pass, `main()`:
 1. Reads and debounces the kill switch, and starts or stops the thrusters ([Kill switch](#kill-switch)).
 1. Handles every frame that has arrived from the host: thrust, the torpedoes, the dropper, the grabber, a raw servo pulse, or a reboot into the bootloader.
 1. Stops the thrusters if they are running and no thrust command has arrived for 500 ms.
-1. Every 200 ms, sends the host a `STATE` frame, and sets the thrusters to neutral again if they are not running.
+1. Every 100 ms, sends the host a `STATE` frame, and sets the thrusters to neutral again if they are not running.
 1. Sleeps for 1 ms.
 
 Nothing in the loop may block: a pass that takes over a second resets the board. Anything that waits on a device needs a bound, as the pressure readings have ([Depth](#depth)).
