@@ -1,0 +1,243 @@
+{
+  "$comment": "Devicetree (.dts, .dtsi, Zephyr .overlay) grammar for code blocks. Shiki does not bundle one.",
+  "name": "devicetree",
+  "displayName": "Devicetree",
+  "scopeName": "source.devicetree",
+  "aliases": ["dts", "dtsi", "overlay"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#preprocessor" },
+    { "include": "#directives" },
+    { "include": "#strings" },
+    { "include": "#cells" },
+    { "include": "#bytestring" },
+    { "include": "#label-definition" },
+    { "include": "#reference" },
+    { "include": "#node" },
+    { "include": "#property" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.devicetree",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.devicetree" } },
+          "endCaptures": { "0": { "name": "punctuation.definition.comment.end.devicetree" } }
+        },
+        {
+          "name": "comment.line.double-slash.devicetree",
+          "begin": "//",
+          "end": "$",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.devicetree" } }
+        }
+      ]
+    },
+    "preprocessor": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.include.devicetree",
+          "match": "^\\s*(#)\\s*(include)\\b\\s*(?:(<[^>]*>)|(\"[^\"]*\"))?",
+          "captures": {
+            "1": {
+              "name": "keyword.control.directive.include.devicetree punctuation.definition.directive.devicetree"
+            },
+            "2": { "name": "keyword.control.directive.include.devicetree" },
+            "3": { "name": "string.quoted.other.lt-gt.include.devicetree" },
+            "4": { "name": "string.quoted.double.include.devicetree" }
+          }
+        },
+        {
+          "name": "meta.preprocessor.macro.devicetree",
+          "begin": "^\\s*(#)\\s*(define)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "end": "(?<!\\\\)$",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.directive.define.devicetree punctuation.definition.directive.devicetree"
+            },
+            "2": { "name": "keyword.control.directive.define.devicetree" },
+            "3": { "name": "entity.name.function.preprocessor.devicetree" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#strings" },
+            { "include": "#numbers" },
+            { "include": "#operators" },
+            { "include": "#macro" }
+          ]
+        },
+        {
+          "name": "meta.preprocessor.devicetree",
+          "begin": "^\\s*(#)\\s*(undef|ifdef|ifndef|if|elif|else|endif|error|warning|pragma|line)\\b",
+          "end": "(?<!\\\\)$",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.directive.conditional.devicetree punctuation.definition.directive.devicetree"
+            },
+            "2": { "name": "keyword.control.directive.conditional.devicetree" }
+          },
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#strings" },
+            { "include": "#numbers" },
+            { "include": "#operators" },
+            { "include": "#macro" }
+          ]
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "match": "(/delete-node/)\\s+(?:(&)([A-Za-z_][A-Za-z0-9_]*)|([A-Za-z][A-Za-z0-9,._+-]*)(?:(@)([A-Za-z0-9,._+-]+))?)",
+          "captures": {
+            "1": { "name": "keyword.control.directive.devicetree" },
+            "2": { "name": "variable.other.label.reference.devicetree" },
+            "3": { "name": "variable.other.label.reference.devicetree" },
+            "4": { "name": "entity.name.tag.devicetree" },
+            "5": { "name": "punctuation.separator.unit-address.devicetree" },
+            "6": { "name": "constant.numeric.unit-address.devicetree" }
+          }
+        },
+        {
+          "name": "keyword.control.directive.devicetree",
+          "match": "/(?:dts-v1|plugin|include|memreserve|delete-property|delete-node|omit-if-no-ref|bits)/"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.devicetree",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.devicetree" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.devicetree" } },
+      "patterns": [
+        {
+          "name": "constant.character.escape.devicetree",
+          "match": "\\\\(?:x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|.)"
+        }
+      ]
+    },
+    "char": {
+      "name": "string.quoted.single.devicetree",
+      "match": "'(?:\\\\(?:x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|.)|[^'\\\\])'"
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.devicetree",
+          "match": "\\b0[xX][0-9A-Fa-f]+(?:[uU]?[lL]{0,2})\\b"
+        },
+        { "name": "constant.numeric.decimal.devicetree", "match": "\\b[0-9]+(?:[uU]?[lL]{0,2})\\b" }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.devicetree",
+          "match": "<<|>>|<=|>=|==|!=|&&|\\|\\||[-+*/%&|^~!<>?:]"
+        }
+      ]
+    },
+    "macro": {
+      "name": "constant.other.macro.devicetree",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    },
+    "expression": {
+      "name": "meta.expression.devicetree",
+      "begin": "\\(",
+      "end": "\\)",
+      "beginCaptures": { "0": { "name": "punctuation.section.parens.begin.devicetree" } },
+      "endCaptures": { "0": { "name": "punctuation.section.parens.end.devicetree" } },
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#expression" },
+        { "include": "#char" },
+        { "include": "#numbers" },
+        { "include": "#operators" },
+        { "include": "#macro" },
+        { "name": "punctuation.separator.comma.devicetree", "match": "," }
+      ]
+    },
+    "cells": {
+      "name": "meta.cells.devicetree",
+      "begin": "<",
+      "end": ">",
+      "beginCaptures": { "0": { "name": "punctuation.definition.cells.begin.devicetree" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.cells.end.devicetree" } },
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#label-definition" },
+        { "include": "#reference" },
+        { "include": "#expression" },
+        { "include": "#char" },
+        { "include": "#numbers" },
+        { "include": "#macro" }
+      ]
+    },
+    "bytestring": {
+      "name": "meta.bytestring.devicetree",
+      "begin": "\\[",
+      "end": "\\]",
+      "beginCaptures": { "0": { "name": "punctuation.definition.bytestring.begin.devicetree" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.bytestring.end.devicetree" } },
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#label-definition" },
+        { "name": "constant.numeric.hex.devicetree", "match": "[0-9A-Fa-f]{2}" }
+      ]
+    },
+    "label-definition": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)",
+      "captures": {
+        "1": { "name": "variable.other.label.devicetree" },
+        "2": { "name": "punctuation.separator.label.devicetree" }
+      }
+    },
+    "reference": {
+      "patterns": [
+        { "name": "variable.other.label.reference.devicetree", "match": "&[A-Za-z_][A-Za-z0-9_]*" },
+        {
+          "match": "(&)(\\{)([^}]*)(\\})",
+          "captures": {
+            "1": { "name": "variable.other.label.reference.devicetree" },
+            "2": { "name": "punctuation.definition.reference.path.begin.devicetree" },
+            "3": { "name": "string.unquoted.path.devicetree" },
+            "4": { "name": "punctuation.definition.reference.path.end.devicetree" }
+          }
+        }
+      ]
+    },
+    "node": {
+      "patterns": [
+        {
+          "match": "(/)(?=\\s*\\{)",
+          "captures": { "1": { "name": "entity.name.tag.root.devicetree" } }
+        },
+        {
+          "match": "([A-Za-z][A-Za-z0-9,._+-]*)(?:(@)([A-Za-z0-9,._+-]+))?(?=\\s*\\{)",
+          "captures": {
+            "1": { "name": "entity.name.tag.devicetree" },
+            "2": { "name": "punctuation.separator.unit-address.devicetree" },
+            "3": { "name": "constant.numeric.unit-address.devicetree" }
+          }
+        }
+      ]
+    },
+    "property": {
+      "match": "([A-Za-z0-9,._+?#-]+)(?=\\s*[=;])",
+      "captures": { "1": { "name": "variable.other.property.devicetree" } }
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.section.block.begin.devicetree", "match": "\\{" },
+        { "name": "punctuation.section.block.end.devicetree", "match": "\\}" },
+        { "name": "punctuation.terminator.statement.devicetree", "match": ";" },
+        { "name": "punctuation.separator.comma.devicetree", "match": "," },
+        { "name": "keyword.operator.assignment.devicetree", "match": "=" }
+      ]
+    }
+  }
+}

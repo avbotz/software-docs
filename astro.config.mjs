@@ -2,6 +2,14 @@
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
+import devicetreeJson from "./src/langs/devicetree.tmLanguage.json" with { type: "json" };
+
+// TypeScript infers a JSON import's type from its contents, and that inferred type
+// does not match the grammar type Expressive Code expects, so we state the type.
+const devicetree =
+  /** @type {NonNullable<import("@astrojs/starlight/expressive-code").PluginShikiOptions["langs"]>[number]} */ (
+    devicetreeJson
+  );
 
 export default defineConfig({
   site: "https://sw.avbotz.com",
@@ -22,6 +30,8 @@ export default defineConfig({
       editLink: { baseUrl: "https://github.com/avbotz/software-docs/edit/main/" },
       lastUpdated: true,
       customCss: ["./src/styles/custom.css"],
+      // Shiki has no devicetree grammar, so code blocks tagged `dts` use ours.
+      expressiveCode: { shiki: { langs: [devicetree] } },
       // The website's build fails on a link to a page or heading that does not exist.
       plugins: [starlightLinksValidator({ exclude: ["/diagrams/**"] })],
       sidebar: [
