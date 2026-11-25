@@ -275,14 +275,14 @@ std_srvs.srv.Trigger_Response(success=True, message='zeroing x, y and yaw; holdi
 
 ## Parameters: a node's settings
 
-A **parameter** is a setting you can read, and often change, while a node runs. `power_limit` caps the thruster commands:
+A **parameter** is a setting you can read, and often change, while a node runs. `power_limit` caps each thruster's command:
 
 ```bash
 ros2 param get /marlin_v3/sub_control power_limit
 ```
 
 ```text
-Double value is: 0.6
+Double value is: 1.0
 ```
 
 ```bash
@@ -292,10 +292,10 @@ ros2 param describe /marlin_v3/sub_control power_limit
 ```text
 Parameter name: power_limit
   Type: double
-  Description: Max |normalized thruster command|, up to MAX_POWER_LIMIT (allocator.hpp)
+  Description: Max |normalized command| of any one thruster
   Constraints:
     Min value: 0.0
-    Max value: 0.6
+    Max value: 1.0
 ```
 
 Lower it, and the robot moves more gently:

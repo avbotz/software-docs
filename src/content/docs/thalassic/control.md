@@ -93,10 +93,10 @@ The EKF zeroes x, y and yaw (depth, roll and pitch come from the sensors and are
 ## Outputs
 
 - `control/thrusters` (`ThrusterCommand`), every cycle: the eight normalized commands, stamped.
-- `control/status` (`ControllerStatus`), every cycle: each axis's mode, target and trajectory reference; the commanded and achieved wrench; integrators and disturbance estimate; each thruster's force, command, saturation and health; which axes are controllable; and the watchdog states.
+- `control/status` (`ControllerStatus`), every cycle: each axis's mode, target and trajectory reference; the commanded and achieved wrench; integrators and disturbance estimate; each thruster's force, command, saturation and health; the current the commands draw and whether it is limiting them; which axes are controllable; and the watchdog states.
 - `control/error` (`Error`), every cycle: target minus measured, per axis, the way the mission reads it (see the message for frames), and the id of the last command taken up.
 - `control/armed` (`Bool`, latched): whether the thrusters may run.
-- `/diagnostics`, once a second: arming (and what blocks it), sensor ages, and thruster health and saturation, under `sub_control: arming`, `: sensors` and `: thrusters`, aggregated with every other node's on `/diagnostics_agg`.
+- `/diagnostics`, once a second: arming (and what blocks it), sensor ages, and thruster health, saturation and current, under `sub_control: arming`, `: sensors` and `: thrusters`, aggregated with every other node's on `/diagnostics_agg`.
 
 `control/status` and `control/error` are not published while the controller waits for the EKF to confirm the pose reset after arming.
 
@@ -110,7 +110,7 @@ In `VELOCITY` mode the reference position keeps integrating the reference veloci
 
 The reference is kept on a **leash** (`trajectory.translation_leash`, `rotation_leash`): it never gets further than that from the vehicle, so a stalled vehicle (saturated thrusters, a wall) does not accumulate an error that would launch it once freed.
 
-Keep the limits inside what the thrusters can do at `power_limit`; `control/status` shows `thruster_saturated` when they are not.
+Keep the limits inside what the thrusters can do within `current_limit`; `control/status` shows `thruster_saturated` or `current_limited` when they are not.
 
 ## Control law
 
@@ -171,13 +171,23 @@ It holds depth, then for each axis pushes open loop (`EFFORT`) at two efforts in
 `allocator.cpp` maps the body wrench to eight thruster forces with the 6×8 matrix `B`, built from each thruster's position and direction relative to the centre of gravity. The layout comes from the `thrusters:` block of `src/sub_bringup/config/vehicles/<robot>.yaml`, the only copy of it: the launch file passes it to `sub_control` (`allocation.thruster_*`), the simulator is generated from it, and the TF tree is published from it. It solves, every cycle:
 
 ```
-minimize   ||W (B f − wrench)||²  +  ε ||f||²
+minimize   ||W (B f − wrench)||²  +  c ||f||²
 subject to h_i · lower_i ≤ f_i ≤ h_i · upper_i
 ```
 
-exactly, with a primal active-set method (a handful of 8×8 solves). The weights `W` (`allocation.axis_weights`, default `[1, 1, 100, 100, 100, 10]`) differ by orders of magnitude so they act as priorities: when the request is out of reach, surge and sway give way first, then heading, and depth and attitude are kept. `h_i` is each thruster's health. Among force sets that achieve the wrench equally, the least `||f||²` (a stand-in for power) wins.
+exactly, with a primal active-set method (a handful of 8×8 solves). The weights `W` (`allocation.axis_weights`, default `[1, 1, 100, 100, 100, 10]`) differ by orders of magnitude so they act as priorities: when the request is out of reach, surge and sway give way first, then heading, and depth and attitude are kept. `h_i` is each thruster's health. `c`, the cost of thrust, is normally tiny: among force sets that achieve the wrench equally, the least `||f||²` (a stand-in for power) wins.
 
-The bounds come from `power_limit` through the T200 curve. A thruster's force is along its mounted +X, the way a right-hand propeller pushes on a positive command; a left-hand propeller is its mirror image, so it pushes the other way and with the curve's weaker half (`thruster_command()` in `utils.hpp`). Commands are slew-limited (`allocation.max_command_rate`, normalized command per second) to avoid current spikes from instant reversals, and the force actually commanded, after the slew limit, is what is reported as achieved. A lowered `power_limit` applies at once, ahead of the slew limit.
+The bounds come from `power_limit`, the most any one thruster may be commanded (1, all the ESC has, unless lowered), through the T200 curve. A thruster's force is along its mounted +X, the way a right-hand propeller pushes on a positive command; a left-hand propeller is its mirror image, so it pushes the other way and with the curve's weaker half (`thruster_command()` in `utils.hpp`). Commands are slew-limited (`allocation.max_command_rate`, normalized command per second) to avoid current spikes from instant reversals, and the force actually commanded, after the slew limit, is what is reported as achieved. A lowered `power_limit` applies at once, ahead of the slew limit.
+
+### Current limit
+
+What limits the thrusters is the current the battery, its fuse and the wiring can supply all eight together, not how hard any one of them runs. `current_limit` is that figure in amps, 60. Each cycle the allocator adds up what its commands would draw, from Blue Robotics' measured current for the T200 (`data/t200_current.csv`, beside the thrust curve), and if that is over the limit it solves the allocation again with a higher cost of thrust `c`, the least that fits (a bisection: some 20 more solves, tens of microseconds). Raising `c` gives up wrench in the order of the weights, so surge and sway go first and depth and attitude last, exactly as when thrusters saturate; the shortfall reaches the integrators the same way. `control/status` reports the current counted (`thruster_current`) and whether thrust is being given up for it (`current_limited`).
+
+Nothing measures the battery voltage, and the same command draws more current the higher it is, so the current is counted at `max_thruster_voltage`, the highest the battery gets: the limit then holds at any charge. The thrust curve keeps its own `thruster_voltage`.
+
+A budget on the total lets a few thrusters run hard while the rest idle. Capping every thruster at 60%, which lets all eight draw up to 68.8 A at 20 V, leaves 67 N for a forward surge; a budget of 60 A gives it 97 N, since a surge only works the four horizontals.
+
+The firmware has a 60 A limit of its own, and scales all eight commands down together if they would draw more ([Safety limits](/maritime/firmware/#safety-limits)). It knows nothing of priorities and `sub_control` would not see what it took away, so keep `max_thruster_voltage` at 20 V: the board counts at 18 V, where commands within 60 A at 20 V come to at most 57.9 A. If both counted at 18 V the board could cut in, since its coarser table reads up to 62.1 A for commands `sub_control` counts as 60 A. A lowered `current_limit` takes hold as fast as the commands may slew.
 
 ### Thruster failure
 
@@ -234,7 +244,10 @@ The `gains` launch argument picks one of two profiles at startup:
 | Parameter                                                        | Meaning                                                                                                                                                   |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `control_rate_hz`                                                | Control loop rate (50)                                                                                                                                    |
-| `power_limit`                                                    | Normalized thrust cap in [0, 0.6] (`MAX_POWER_LIMIT`, 1260-1740 µs to the ESCs; `sub_low` and the firmware enforce it too)                                |
+| `current_limit`                                                  | Most the eight thrusters may draw together [A] (60): [Current limit](#current-limit)                                                                      |
+| `max_thruster_voltage`                                           | Highest the battery voltage gets [V], 10 to 20, which the current is counted at; at least `thruster_voltage`                                              |
+| `thruster_voltage`                                               | Battery voltage the thrust curve is taken at [V], 10 to 20                                                                                                |
+| `power_limit`                                                    | Most any one thruster may be commanded, in [0, 1] (1 is 1100 or 1900 µs to its ESC)                                                                       |
 | `model.*`                                                        | [Vehicle model](#vehicle-model)                                                                                                                           |
 | `feedforward.{acceleration,drag,restoring}`                      | Scale of each feedforward term, 0 to 1                                                                                                                    |
 | `trajectory.{horizontal,vertical,roll,pitch,yaw}`                | `[max velocity, max acceleration, max jerk]`                                                                                                              |
@@ -260,7 +273,7 @@ Each parameter's type, default, description and limits are defined once, in `src
 1. Check the thrust direction of every thruster (`EFFORT` on each axis should move the vehicle that way).
 1. Identify the model (`identify_model`) and paste it in.
 1. Pick a bandwidth per axis and set `kp, ki, kd = 3ω², ω³, 3ω`. Start low (x/y 0.6, z 1.0, attitude 1.5 rad/s) and raise each until the response rings, then back off by a third. Step the axis alone with `MotionSetpoint` and watch `control/status`.
-1. Raise the trajectory limits until `thruster_saturated` starts to appear on long moves.
+1. Raise the trajectory limits until `thruster_saturated` or `current_limited` starts to appear on long moves.
 
 Gains tuned in simulation do not carry over to the vehicle; the procedure does.
 

@@ -11,7 +11,7 @@ The firmware is one thread, `main()`, which loops every millisecond. Bytes from 
 | ------------------------- | --------------------------------------------------------------------------------------------------- |
 | `src/main.c`              | The main loop: the kill switch, the frames from the host, the safety limits, and the state it sends |
 | `src/protocol.c`          | The [binary protocol](/maritime/protocol/#protocol): COBS framing, in both directions               |
-| `src/thruster.c`          | Thrust (-1 to 1) to an ESC pulse                                                                    |
+| `src/thruster.c`          | Throttle (-1 to 1) to an ESC pulse                                                                  |
 | `src/servo.c`             | The dropper, torpedo and grabber servos                                                             |
 | `src/pressure.c`          | The pressure sensor's ADC readings to depth                                                         |
 | `src/killswitch.c`        | Reads the kill switch's pin                                                                         |
@@ -27,8 +27,8 @@ Each pass, `main()`:
 
 1. Feeds the hardware watchdog.
 1. Reads and debounces the kill switch, and starts or stops the thrusters ([Kill switch](#kill-switch)).
-1. Handles every frame that has arrived from the host: thrust, the torpedoes, the dropper, the grabber, a raw servo pulse, or a reboot into the bootloader.
-1. Stops the thrusters if they are running and no thrust command has arrived for 500 ms.
+1. Handles every frame that has arrived from the host: throttle, the torpedoes, the dropper, the grabber, a raw servo pulse, or a reboot into the bootloader.
+1. Stops the thrusters if they are running and no throttle command has arrived for 500 ms.
 1. Every 100 ms, sends the host a `STATE` frame, and sets the thrusters to neutral again if they are not running.
 1. Sleeps for 1 ms.
 
@@ -39,19 +39,20 @@ Nothing in the loop may block: a pass that takes over a second resets the board.
 The kill switch cuts power to the ESCs. The firmware reads it on a pin as well, and only drives the thrusters while it is released:
 
 - A change counts once the switch has read the same for 75 ms.
-- On a release, the ESCs power up, and need neutral before they take a command: the thrusters stay at neutral for 750 ms, and only then does the board obey thrust commands. `STATE` reports the board killed until then.
+- On a release, the ESCs power up, and need neutral before they take a command: the thrusters stay at neutral for 750 ms, and only then does the board obey throttle commands. `STATE` reports the board killed until then.
 - On a kill, every thruster goes to neutral at once.
 - The board starts killed, whatever the switch reads, and a release counts only after the switch has read killed since boot. **After any reset (flashing, a brownout, the watchdog), cycle the kill switch:** a board that resets mid-run stays killed rather than driving again on its own.
 
 ## Safety limits
 
-| Limit                            | Value         | What happens                                                                                                                                    |
-| -------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Command timeout                  | 500 ms        | Once thrust commands have started, every thruster goes to neutral if none arrives for this long. `STATE` counts the times in `command_timeouts` |
-| Hardware watchdog                | 1 s           | The RP2040 resets if the main loop stalls this long, which stops the thruster PWM. It is paused while a debugger halts the chip                 |
-| Power cap                        | ±0.6          | Thrust beyond it is clamped: 1260 to 1740 µs to the ESCs. thalassic's `sub_control` and `sub_low` clamp to the same value                       |
-| A thrust that is NaN or infinite | 0             | That thruster goes to neutral                                                                                                                   |
-| Servo pulse                      | The overlay's | A raw `SERVO` pulse is clamped to the servo's `min-pulse` and `max-pulse`                                                                       |
+| Limit                              | Value         | What happens                                                                                                                                         |
+| ---------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command timeout                    | 500 ms        | Once throttle commands have started, every thruster goes to neutral if none arrives for this long. `STATE` counts the times in `command_timeouts`    |
+| Hardware watchdog                  | 1 s           | The RP2040 resets if the main loop stalls this long, which stops the thruster PWM. It is paused while a debugger halts the chip                      |
+| Thruster current                   | 60 A          | If the eight throttles would draw more together, counted at 18 V, all are scaled down by the same factor until they fit. The overlay's `max-current` |
+| Throttle cap                       | ±1            | Each throttle is first clamped to the overlay's `max-throttle` (100%: all the ESC has, 1100 to 1900 µs)                                              |
+| A throttle that is NaN or infinite | 0             | That thruster goes to neutral                                                                                                                        |
+| Servo pulse                        | The overlay's | A raw `SERVO` pulse is clamped to the servo's `min-pulse` and `max-pulse`                                                                            |
 
 ## Depth
 

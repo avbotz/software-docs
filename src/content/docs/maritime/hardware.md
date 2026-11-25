@@ -26,7 +26,7 @@ From `boards/rpi_pico.overlay`, which is the only copy: change a pin there, and 
 
 ## Thrusters and ESCs
 
-The board sends each of the eight ESCs a standard servo pulse at 50 Hz: a thrust of -1 is 1100 µs, 0 is 1500 µs (neutral), and 1 is 1900 µs, linear between them. The firmware caps thrust at ±0.6, so 1260 to 1740 µs ([Safety limits](/maritime/firmware/#safety-limits)).
+The board sends each of the eight ESCs a standard servo pulse at 400 Hz: a throttle of -1 is 1100 µs, 0 is 1500 µs (neutral), and 1 is 1900 µs, linear between them. What the firmware limits is the current all eight draw together, scaling them down if it must ([Safety limits](/maritime/firmware/#safety-limits)).
 
 A thruster's number is its index in thalassic's `control/thrusters`, and its place on the vehicle:
 

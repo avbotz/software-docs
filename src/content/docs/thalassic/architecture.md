@@ -55,24 +55,24 @@ On hardware the graph is the same, except that `waterlinked_dvl_driver` publishe
 
 The 50 Hz control node: a jerk-limited trajectory generator, a model-based control law (feedforward from the vehicle model plus full-state feedback) and a box-constrained QP thrust allocator that works around failed thrusters and saturation. It also owns arming and the watchdogs that decide which axes have feedback and whether the thrusters may run. See [Control system](/thalassic/control/).
 
-|         | Topic               | Type                                                                                      |
-| ------- | ------------------- | ----------------------------------------------------------------------------------------- |
-| Sub     | `motion_setpoint`   | `sub_control_interfaces/MotionSetpoint` (mode per axis, with an `id` it acknowledges)     |
-| Sub     | `cmd_vel`           | `geometry_msgs/Twist` (stops if the stream does)                                          |
-| Sub     | `odometry/filtered` | `nav_msgs/Odometry`                                                                       |
-| Sub     | `imu/data`          | `sensor_msgs/Imu` (rate feedback)                                                         |
-| Sub     | `dvl/velocity`      | `geometry_msgs/TwistWithCovarianceStamped` (watchdog only)                                |
-| Sub     | `odometry/depth`    | `nav_msgs/Odometry` (watchdog only)                                                       |
-| Sub     | `altitude`          | `sensor_msgs/Range` (DVL altitude)                                                        |
-| Sub     | `kill_switch`       | `std_msgs/Bool`                                                                           |
-| Sub     | `/tf`, `/tf_static` | `tf2_msgs/TFMessage` (the IMU's mounting)                                                 |
-| Pub     | `control/thrusters` | `sub_control_interfaces/ThrusterCommand` (all eight, stamped, normalized, capped at ±0.6) |
-| Pub     | `control/error`     | `sub_control_interfaces/Error` (with the id of the last command taken up)                 |
-| Pub     | `control/status`    | `sub_control_interfaces/ControllerStatus`                                                 |
-| Pub     | `control/armed`     | `std_msgs/Bool`, latched                                                                  |
-| Pub     | `/diagnostics`      | `diagnostic_msgs/DiagnosticArray` (arming, sensors, thrusters)                            |
-| Client  | `set_pose`          | `robot_localization/SetPose`                                                              |
-| Service | `~/reset_pose`      | `std_srvs/Trigger` ([re-zeroes the pose](/thalassic/control/#re-zeroing-the-pose))        |
+|         | Topic               | Type                                                                                                      |
+| ------- | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| Sub     | `motion_setpoint`   | `sub_control_interfaces/MotionSetpoint` (mode per axis, with an `id` it acknowledges)                     |
+| Sub     | `cmd_vel`           | `geometry_msgs/Twist` (stops if the stream does)                                                          |
+| Sub     | `odometry/filtered` | `nav_msgs/Odometry`                                                                                       |
+| Sub     | `imu/data`          | `sensor_msgs/Imu` (rate feedback)                                                                         |
+| Sub     | `dvl/velocity`      | `geometry_msgs/TwistWithCovarianceStamped` (watchdog only)                                                |
+| Sub     | `odometry/depth`    | `nav_msgs/Odometry` (watchdog only)                                                                       |
+| Sub     | `altitude`          | `sensor_msgs/Range` (DVL altitude)                                                                        |
+| Sub     | `kill_switch`       | `std_msgs/Bool`                                                                                           |
+| Sub     | `/tf`, `/tf_static` | `tf2_msgs/TFMessage` (the IMU's mounting)                                                                 |
+| Pub     | `control/thrusters` | `sub_control_interfaces/ThrusterCommand` (all eight, stamped, normalized to ±1, within the current limit) |
+| Pub     | `control/error`     | `sub_control_interfaces/Error` (with the id of the last command taken up)                                 |
+| Pub     | `control/status`    | `sub_control_interfaces/ControllerStatus`                                                                 |
+| Pub     | `control/armed`     | `std_msgs/Bool`, latched                                                                                  |
+| Pub     | `/diagnostics`      | `diagnostic_msgs/DiagnosticArray` (arming, sensors, thrusters)                                            |
+| Client  | `set_pose`          | `robot_localization/SetPose`                                                                              |
+| Service | `~/reset_pose`      | `std_srvs/Trigger` ([re-zeroes the pose](/thalassic/control/#re-zeroing-the-pose))                        |
 
 The thruster commands go out every cycle, `control/error` and `control/status` every cycle except while the node waits for the EKF to confirm the pose reset after a kill-switch release. Gains, the vehicle model and trajectory limits come from the hardware or simulation control profile; the thruster layout from the vehicle description. Parameters are in [Control system](/thalassic/control/#configuration).
 
